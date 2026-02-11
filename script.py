@@ -8,6 +8,8 @@ def inicjacja_uwierzytelniania():
     response = requests.post(challange_url)
     response.raise_for_status()
 
+    print(f"Response code: {response.status_code}")
+
     challenge_data = response.json()
     challenge_str = challenge_data['challenge']
     timestamp = challenge_data['timestamp']
