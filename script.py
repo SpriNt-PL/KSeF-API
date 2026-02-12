@@ -1,4 +1,6 @@
 import requests
+import os
+from dotenv import load_dotenv
 
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
 
@@ -17,6 +19,16 @@ def inicjacja_uwierzytelniania():
     print(f"Sukces! Otrzymano challenge: {challenge_str}")
     print(f"Timestamp serwera: {timestamp}")
 
+    return challenge_str, timestamp
+
+def uwierzytelnianie_z_tokenem(challange, timestamp):
+    return
+
 if __name__ == "__main__":
     print("Program wystartował.")
-    inicjacja_uwierzytelniania()
+    challange, timestamp = inicjacja_uwierzytelniania()
+
+    load_dotenv()
+
+    nip = os.getenv("NIP")
+    print(nip)
