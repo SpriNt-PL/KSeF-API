@@ -73,9 +73,11 @@ def uwierzytelnianie_z_tokenem(nip, challange, encrypted_token):
     response = requests.post(url, json=query_payload)
     print(f"Response code: {response.status_code}")
 
-    if response.status_code != 202:
-        response_data = response.json()
+    response_data = response.json()
+    print(response_data)
 
+
+    if response.status_code != 202:
         print(response_data)
 
 
