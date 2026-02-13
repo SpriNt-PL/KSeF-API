@@ -106,6 +106,28 @@ def status_uwierzytelniania(session_token, reference_number):
         print(response_data['status']['code'])
         print(response_data['status']['description'])
 
+
+def pobieranie_tokenow_dostepowych(session_token):
+
+    url = f"{PROD_URL}/auth/token/redeem"
+
+    headers = {
+        "Authorization": f"Bearer {session_token}"
+    }
+
+    response = requests.post(url, headers=headers)
+
+    print(f"Response code: {response.status_code}")
+
+    if response.status_code == 200:
+        response_data = response.json()
+
+        print(f"Access token ważny do: {response_data['accessToken']['validUntil']}")
+        print(f"Refresh token ważny do: {response_data['refreshToken']['validUntil']}")
+
+        return response_data['accessToken']['token'], response_data['refreshToken']['token']
+
+
 def szyfrowanie_eksportu(certificate):
     symmetric_key = os.urandom(32)
 
@@ -181,8 +203,11 @@ if __name__ == "__main__":
     session_token, reference_number = uwierzytelnianie_z_tokenem(nip, challange, encrypted_token)
     status_uwierzytelniania(session_token, reference_number)
 
+    print("\n4. Pobieranie tokenów dostępowych")
+
+    access_token, refresh_token = pobieranie_tokenow_dostepowych(session_token)
 
     print("\n4. Pobieranie faktur")
 
-    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate)
-    eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token)
+    #encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate)
+    #eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token)
