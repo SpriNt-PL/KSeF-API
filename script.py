@@ -33,11 +33,16 @@ def pobieranie_certyfikatow():
     response = requests.get(url)
 
     response_data = response.json()
-    response_data = response_data[0]
+    response_data_KsefTokenEncryption = response_data[0]
+    response_data_SymmetricKeyEncryption = response_data[1]
 
-    print(f"Certyfikat ważny do {response_data['validTo']}")
+    print(f"Certyfikat 'KsefTokenEncryption' ważny do {response_data_KsefTokenEncryption['validTo']}")
+    print(f"Certyfikat 'SymmetricKeyEncryption' ważny do {response_data_SymmetricKeyEncryption['validTo']}")
 
-    return response_data['certificate']
+    certificate_KsefTokenEncryption = response_data_KsefTokenEncryption['certificate']
+    certificate_SymmetricKeyEncryption = response_data_SymmetricKeyEncryption['certificate']
+
+    return certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption
 
 
 def szyfrowanie_encryptedToken(token, timestamp, certificate):
@@ -215,7 +220,7 @@ if __name__ == "__main__":
     challange, timestamp = inicjacja_uwierzytelniania()
 
     print("\n2. Pobieranie certyfikatow")
-    certificate = pobieranie_certyfikatow()
+    certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = pobieranie_certyfikatow()
 
     load_dotenv()
 
@@ -224,7 +229,7 @@ if __name__ == "__main__":
 
     print(f"\n3. Uwierzytelnianie tokenem (NIP = {nip} oraz TOKEN = {token})")
 
-    encrypted_token = szyfrowanie_encryptedToken(token, timestamp, certificate)
+    encrypted_token = szyfrowanie_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
     session_token, reference_number = uwierzytelnianie_z_tokenem(nip, challange, encrypted_token)
     status_uwierzytelniania(session_token, reference_number)
 
@@ -234,7 +239,7 @@ if __name__ == "__main__":
 
     print("\n4. Pobieranie faktur")
 
-    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate)
+    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate_SymmetricKeyEncryption)
     package_reference_number = eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
 
     statusu_eksportu(package_reference_number, access_token)
