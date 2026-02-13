@@ -78,14 +78,33 @@ def uwierzytelnianie_z_tokenem(nip, challange, encrypted_token):
     if response.status_code == 202:
         response_data = response.json()
         print(f"Token ważny do: {response_data['authenticationToken']['validUntil']}")
-        return response_data['authenticationToken']['token']
+        return response_data['authenticationToken']['token'], response_data['referenceNumber']
 
 
     else:
         print(response_data)
 
         return None
+    
 
+def status_uwierzytelniania(session_token, reference_number):
+
+    url = f"{PROD_URL}/auth/{reference_number}"
+
+    headers = {
+        "Authorization": f"Bearer {session_token}"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    print(f"Response code: {response.status_code}")
+
+    if response.status_code == 200:
+        response_data = response.json()
+
+        print(response_data['authenticationMethod'])
+        print(response_data['status']['code'])
+        print(response_data['status']['description'])
 
 def szyfrowanie_eksportu(certificate):
     symmetric_key = os.urandom(32)
@@ -118,8 +137,8 @@ def eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token):
 
     query_payload = {
         "encryption": {
-            "encryptedSymmetricKey": encrypted_key_b64,
-            "initializationVector": initialization_vector_b64
+            "encryptedSymmetricKey": f"{encrypted_key_b64}",
+            "initializationVector": f"{initialization_vector_b64}"
         },
         "filters": {
             "subjectType": "Subject2", 
@@ -130,6 +149,8 @@ def eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token):
             }
         }
     }
+
+    print(query_payload)
 
     response = requests.post(url, headers=headers, json=query_payload)
 
@@ -157,7 +178,8 @@ if __name__ == "__main__":
     print(f"\n3. Uwierzytelnianie tokenem (NIP = {nip} oraz TOKEN = {token})")
 
     encrypted_token = szyfrowanie_encryptedToken(token, timestamp, certificate)
-    session_token = uwierzytelnianie_z_tokenem(nip, challange, encrypted_token)
+    session_token, reference_number = uwierzytelnianie_z_tokenem(nip, challange, encrypted_token)
+    status_uwierzytelniania(session_token, reference_number)
 
 
     print("\n4. Pobieranie faktur")
