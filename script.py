@@ -149,12 +149,12 @@ def szyfrowanie_eksportu(certificate):
     return encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector
 
 
-def eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token):
+def eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token):
 
     url = f"{PROD_URL}/invoices/exports"
 
     headers = {
-        "Authorization": f"Bearer {session_token}"
+        "Authorization": f"Bearer {access_token}"
     }
 
     query_payload = {
@@ -172,16 +172,41 @@ def eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token):
         }
     }
 
-    #print(query_payload)
-
     response = requests.post(url, headers=headers, json=query_payload)
 
     print(f"Response code: {response.status_code}")
 
     if response.status_code == 201:
-        print(response.json())
+        response_data = response.json()
+
+        return response_data['referenceNumber']
     else:
-        print(response.text)
+        return None
+
+
+def statusu_eksportu(reference_number, access_token):
+
+    url = f"{PROD_URL}/invoices/exports/{reference_number}"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    response = requests.get(url, headers=headers)
+
+    print(f"Response code: {response.status_code}")
+
+    if response.status_code == 200:
+
+        response_data = response.json()
+
+        print(response_data['status']['code'])
+        print(response_data['status']['description'])
+
+        if response_data['status']['code'] == 200:
+            print(response_data['package']['invoiceCount'])
+            print(response_data['package']['size'])
+
 
 if __name__ == "__main__":
     print("Program wystartował.\n")
@@ -210,4 +235,6 @@ if __name__ == "__main__":
     print("\n4. Pobieranie faktur")
 
     encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate)
-    eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
+    package_reference_number = eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
+
+    statusu_eksportu(package_reference_number, access_token)
