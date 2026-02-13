@@ -172,7 +172,7 @@ def eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token):
         }
     }
 
-    print(query_payload)
+    #print(query_payload)
 
     response = requests.post(url, headers=headers, json=query_payload)
 
@@ -209,5 +209,5 @@ if __name__ == "__main__":
 
     print("\n4. Pobieranie faktur")
 
-    #encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate)
-    #eksport_faktur(encrypted_key_b64, initialization_vector_b64, session_token)
+    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate)
+    eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
