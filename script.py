@@ -215,7 +215,9 @@ def statusu_eksportu(reference_number, access_token):
                 print(response_data['package']['invoiceCount'])
                 print(response_data['package']['size'])
 
-                return True
+                parts_data = response_data['package']['parts']
+
+                return True, parts_data
             
             elif export_status == 100:
                 print(f"Paczka jest wciąż przygotowywania. Ponowienie za {EXPORT_DELAY_TIME} sekund.")
@@ -224,11 +226,32 @@ def statusu_eksportu(reference_number, access_token):
 
             else:
                 print("Błąd eksportu")
-                return False
+                return False, None
 
         else:
             "Błąd odpowiedzi"
-            return False
+            return False, None
+
+
+def pobieranie_paczki(parts_data, access_token):
+
+    for part in parts_data:
+
+        url = part['url']
+        part_name = part['partName']
+
+        print(part_name)
+
+        response = requests.get(url)
+
+        print(f"Response code: {response.status_code}")
+
+        # if response.status_code != 200:
+        #     return
+
+        encrypted_content = response.content
+
+
 
 
 if __name__ == "__main__":
@@ -260,5 +283,7 @@ if __name__ == "__main__":
     encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate_SymmetricKeyEncryption)
     package_reference_number = eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
 
-    if statusu_eksportu(package_reference_number, access_token) == True:
-        print("Rozpoczynam pobieranie wyeksportowanej paczki faktur.")
+    isExported, parts_data = statusu_eksportu(package_reference_number, access_token)
+
+    if isExported:
+        pobieranie_paczki(parts_data, access_token)
