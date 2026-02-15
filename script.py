@@ -6,6 +6,8 @@ from dotenv import load_dotenv
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding as aes_padding
 
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
 EXPORT_DELAY_TIME = 5
@@ -233,7 +235,7 @@ def statusu_eksportu(reference_number, access_token):
             return False, None
 
 
-def pobieranie_paczki(parts_data, access_token):
+def pobieranie_paczki(parts_data, symmetric_key, initialization_vector):
 
     for part in parts_data:
 
@@ -246,13 +248,32 @@ def pobieranie_paczki(parts_data, access_token):
 
         print(f"Response code: {response.status_code}")
 
-        # if response.status_code != 200:
-        #     return
+        if response.status_code != 200:
+            return
 
         encrypted_content = response.content
 
+        cipher = Cipher(algorithms.AES(symmetric_key), modes.CBC(initialization_vector)) 
+        decryptor = cipher.decryptor()
 
+        padded_data = decryptor.update(encrypted_content) + decryptor.finalize()
 
+        unpadder = aes_padding.PKCS7(128).unpadder()
+
+        try:
+            decrypted_zip = unpadder.update(padded_data) + unpadder.finalize()
+
+            part_name = part_name[:-8]
+
+            output_file = f"{part_name}.zip"
+
+            with open(output_file, "wb") as f:
+                f.write(decrypted_zip)
+
+            print(f"Zapisano {output_file}")
+
+        except Exception as e:
+            print(f"Błąd deszyfrowania: {e}")
 
 if __name__ == "__main__":
     print("Program wystartował.\n")
@@ -286,4 +307,4 @@ if __name__ == "__main__":
     isExported, parts_data = statusu_eksportu(package_reference_number, access_token)
 
     if isExported:
-        pobieranie_paczki(parts_data, access_token)
+        pobieranie_paczki(parts_data, symmetric_key, initialization_vector)
