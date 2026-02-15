@@ -1,12 +1,14 @@
 import requests
 import os
 import base64
+import time
 from dotenv import load_dotenv
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
+EXPORT_DELAY_TIME = 5
 
 def inicjacja_uwierzytelniania():
     url = f"{PROD_URL}/auth/challenge"
@@ -197,20 +199,36 @@ def statusu_eksportu(reference_number, access_token):
         "Authorization": f"Bearer {access_token}"
     }
 
-    response = requests.get(url, headers=headers)
+    while True:
 
-    print(f"Response code: {response.status_code}")
+        response = requests.get(url, headers=headers)
 
-    if response.status_code == 200:
+        print(f"Response code: {response.status_code}")
 
-        response_data = response.json()
+        if response.status_code == 200:
+            response_data = response.json()
 
-        print(response_data['status']['code'])
-        print(response_data['status']['description'])
+            export_status = response_data['status']['code']
 
-        if response_data['status']['code'] == 200:
-            print(response_data['package']['invoiceCount'])
-            print(response_data['package']['size'])
+            if export_status == 200:
+                print("Paczka faktur gotowa do pobrania.")
+                print(response_data['package']['invoiceCount'])
+                print(response_data['package']['size'])
+
+                return True
+            
+            elif export_status == 100:
+                print(f"Paczka jest wciąż przygotowywania. Ponowienie za {EXPORT_DELAY_TIME} sekund.")
+                time.sleep(EXPORT_DELAY_TIME)
+                continue
+
+            else:
+                print("Błąd eksportu")
+                return False
+
+        else:
+            "Błąd odpowiedzi"
+            return False
 
 
 if __name__ == "__main__":
@@ -242,4 +260,5 @@ if __name__ == "__main__":
     encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate_SymmetricKeyEncryption)
     package_reference_number = eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
 
-    statusu_eksportu(package_reference_number, access_token)
+    if statusu_eksportu(package_reference_number, access_token) == True:
+        print("Rozpoczynam pobieranie wyeksportowanej paczki faktur.")
