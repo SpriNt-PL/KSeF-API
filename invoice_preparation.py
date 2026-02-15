@@ -48,8 +48,22 @@ def edit_xml_files():
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.readlines()
 
+            # Logic which ensures that prefix will be added in a proper way
             if content and content[0].startswith('<?xml'):
-                content.pop(0)
+                
+                row = content[0]
+                i = 0
+
+                while i < len(row):
+                    character = row[i]
+
+                    if character == '>':
+                        break
+
+                    i += 1
+
+                content[0] = row[i+1:]
+
 
             new_content = [XML_FIRST_LINE + '\n' + XML_SECOND_LINE + '\n'] + content
 
