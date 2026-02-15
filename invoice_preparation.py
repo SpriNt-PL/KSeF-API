@@ -8,7 +8,7 @@ OLD_ARCHIVE_FOLDER = './Invoices/Old_Archives'
 PREPARED_XML_INVOICES_FOLDER = './Invoices/Prepared_XML_Invoices'
 
 XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
-XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="styl.xsl"?>'
+XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
 
 def extract_files():
     files = os.listdir(ARCHIVE_FOLDER)
@@ -64,7 +64,6 @@ def edit_xml_files():
 
                 content[0] = row[i+1:]
 
-
             new_content = [XML_FIRST_LINE + '\n' + XML_SECOND_LINE + '\n'] + content
 
             destination_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
@@ -72,7 +71,7 @@ def edit_xml_files():
             with open(destination_path, 'w', encoding='utf-8') as f:
                 f.writelines(new_content)
 
-            
+    print("Files successfully edited")
 
 
 if __name__ == "__main__":
