@@ -5,6 +5,10 @@ from zipfile import ZipFile
 ARCHIVE_FOLDER = './Invoices/Archives'
 EXTRACTED_FOLDER = './Invoices/Extracted'
 OLD_ARCHIVE_FOLDER = './Invoices/Old_Archives'
+PREPARED_XML_INVOICES_FOLDER = './Invoices/Prepared_XML_Invoices'
+
+XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
+XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="styl.xsl"?>'
 
 def extract_files():
     files = os.listdir(ARCHIVE_FOLDER)
@@ -36,7 +40,25 @@ def edit_xml_files():
         print("Folder is empty!")
         return
     
-    
+    for file in files:
+        if file.endswith('.xml') and file != 'wyroznik.xml':
+
+            filepath = os.path.join(EXTRACTED_FOLDER, file)
+
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.readlines()
+
+            if content and content[0].startswith('<?xml'):
+                content.pop(0)
+
+            new_content = [XML_FIRST_LINE + '\n' + XML_SECOND_LINE + '\n'] + content
+
+            destination_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
+
+            with open(destination_path, 'w', encoding='utf-8') as f:
+                f.writelines(new_content)
+
+            
 
 
 if __name__ == "__main__":
@@ -44,4 +66,7 @@ if __name__ == "__main__":
 
     print("\n 1. Unzipping the archive with invoices")
     extract_files()
+
+    print("\n 2. Editing the XML files so that it is possible to visualize them")
+    edit_xml_files()
 
