@@ -12,7 +12,8 @@ from cryptography.hazmat.primitives import padding as aes_padding
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
 EXPORT_DELAY_TIME = 5
 
-def inicjacja_uwierzytelniania():
+# Inicjacja uwierzytelniania
+def certifying_initiation():
     url = f"{PROD_URL}/auth/challenge"
 
     response = requests.post(url)
@@ -24,13 +25,13 @@ def inicjacja_uwierzytelniania():
     challenge_str = challenge_data['challenge']
     timestamp = challenge_data['timestampMs']
 
-    print(f"Sukces! Otrzymano challenge: {challenge_str}")
-    print(f"Timestamp serwera: {timestamp}")
+    print(f"Recieved challenge: {challenge_str}")
+    print(f"Server timestamp: {timestamp}")
 
     return challenge_str, timestamp
 
-
-def pobieranie_certyfikatow():
+# Pobieranie certyfikatow
+def download_certificates():
     
     url = f"{PROD_URL}/security/public-key-certificates"
 
@@ -40,16 +41,16 @@ def pobieranie_certyfikatow():
     response_data_KsefTokenEncryption = response_data[0]
     response_data_SymmetricKeyEncryption = response_data[1]
 
-    print(f"Certyfikat 'KsefTokenEncryption' ważny do {response_data_KsefTokenEncryption['validTo']}")
-    print(f"Certyfikat 'SymmetricKeyEncryption' ważny do {response_data_SymmetricKeyEncryption['validTo']}")
+    print(f"Certificate 'KsefTokenEncryption' valid until {response_data_KsefTokenEncryption['validTo']}")
+    print(f"Certificate 'SymmetricKeyEncryption' valid until {response_data_SymmetricKeyEncryption['validTo']}")
 
     certificate_KsefTokenEncryption = response_data_KsefTokenEncryption['certificate']
     certificate_SymmetricKeyEncryption = response_data_SymmetricKeyEncryption['certificate']
 
     return certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption
 
-
-def szyfrowanie_encryptedToken(token, timestamp, certificate):
+# Szyfrowanie encryptedToken
+def creating_encryptedToken(token, timestamp, certificate):
 
     plain_text = f"{token}|{timestamp}".encode('utf-8')
 
@@ -67,8 +68,8 @@ def szyfrowanie_encryptedToken(token, timestamp, certificate):
     
     return encrypted_token_b64
 
-
-def uwierzytelnianie_z_tokenem(nip, challange, encrypted_token):
+# Uwierzytelnianie z tokenem
+def certifying_with_token(nip, challange, encrypted_token):
 
     url = f"{PROD_URL}/auth/ksef-token"
 
@@ -96,7 +97,8 @@ def uwierzytelnianie_z_tokenem(nip, challange, encrypted_token):
         return None
     
 
-def status_uwierzytelniania(session_token, reference_number):
+# Status uwierzytelniania
+def certifying_status(session_token, reference_number):
 
     url = f"{PROD_URL}/auth/{reference_number}"
 
@@ -116,7 +118,8 @@ def status_uwierzytelniania(session_token, reference_number):
         print(response_data['status']['description'])
 
 
-def pobieranie_tokenow_dostepowych(session_token):
+# Pobieranie tokenów dostępowych
+def download_access_tokens(session_token):
 
     url = f"{PROD_URL}/auth/token/redeem"
 
@@ -131,13 +134,14 @@ def pobieranie_tokenow_dostepowych(session_token):
     if response.status_code == 200:
         response_data = response.json()
 
-        print(f"Access token ważny do: {response_data['accessToken']['validUntil']}")
-        print(f"Refresh token ważny do: {response_data['refreshToken']['validUntil']}")
+        print(f"Access token valid until: {response_data['accessToken']['validUntil']}")
+        print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
 
         return response_data['accessToken']['token'], response_data['refreshToken']['token']
 
 
-def szyfrowanie_eksportu(certificate):
+# Szyfrowanie eksportu
+def encrypt_export(certificate):
     symmetric_key = os.urandom(32)
 
     initialization_vector = os.urandom(16)
@@ -158,7 +162,8 @@ def szyfrowanie_eksportu(certificate):
     return encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector
 
 
-def eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token):
+# Eksport faktur
+def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token):
 
     url = f"{PROD_URL}/invoices/exports"
 
@@ -193,7 +198,8 @@ def eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token):
         return None
 
 
-def statusu_eksportu(reference_number, access_token):
+# Status exportu 
+def export_status(reference_number, access_token):
 
     url = f"{PROD_URL}/invoices/exports/{reference_number}"
 
@@ -213,7 +219,7 @@ def statusu_eksportu(reference_number, access_token):
             export_status = response_data['status']['code']
 
             if export_status == 200:
-                print("Paczka faktur gotowa do pobrania.")
+                print("Package ready to be downloaded.")
                 print(response_data['package']['invoiceCount'])
                 print(response_data['package']['size'])
 
@@ -222,20 +228,21 @@ def statusu_eksportu(reference_number, access_token):
                 return True, parts_data
             
             elif export_status == 100:
-                print(f"Paczka jest wciąż przygotowywania. Ponowienie za {EXPORT_DELAY_TIME} sekund.")
+                print(f"Package is still being prepared. Retrying in {EXPORT_DELAY_TIME} seconds.")
                 time.sleep(EXPORT_DELAY_TIME)
                 continue
 
             else:
-                print("Błąd eksportu")
+                print("Export error")
                 return False, None
 
         else:
-            "Błąd odpowiedzi"
+            "Response error"
             return False, None
 
 
-def pobieranie_paczki(parts_data, symmetric_key, initialization_vector):
+# Pobieranie paczki
+def download_package(parts_data, symmetric_key, initialization_vector):
 
     for part in parts_data:
 
@@ -270,41 +277,41 @@ def pobieranie_paczki(parts_data, symmetric_key, initialization_vector):
             with open(output_file, "wb") as f:
                 f.write(decrypted_zip)
 
-            print(f"Zapisano {output_file}")
+            print(f"Saved {output_file}")
 
         except Exception as e:
-            print(f"Błąd deszyfrowania: {e}")
+            print(f"Decipher error: {e}")
 
 if __name__ == "__main__":
-    print("Program wystartował.\n")
+    print("Program started.\n")
     
-    print("1. Inicjacja uwierzytelniania")
-    challange, timestamp = inicjacja_uwierzytelniania()
+    print("1. Certifying initiation")
+    challange, timestamp = certifying_initiation()
 
-    print("\n2. Pobieranie certyfikatow")
-    certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = pobieranie_certyfikatow()
+    print("\n2. Downloading certificates")
+    certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
 
     load_dotenv()
 
     nip = os.getenv("NIP")
     token = os.getenv("TOKEN") 
 
-    print(f"\n3. Uwierzytelnianie tokenem (NIP = {nip} oraz TOKEN = {token})")
+    print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
 
-    encrypted_token = szyfrowanie_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
-    session_token, reference_number = uwierzytelnianie_z_tokenem(nip, challange, encrypted_token)
-    status_uwierzytelniania(session_token, reference_number)
+    encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
+    session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
+    certifying_status(session_token, reference_number)
 
-    print("\n4. Pobieranie tokenów dostępowych")
+    print("\n4. Downloading access tokens")
 
-    access_token, refresh_token = pobieranie_tokenow_dostepowych(session_token)
+    access_token, refresh_token = download_access_tokens(session_token)
 
-    print("\n4. Pobieranie faktur")
+    print("\n4. Downloading invoices")
 
-    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = szyfrowanie_eksportu(certificate_SymmetricKeyEncryption)
-    package_reference_number = eksport_faktur(encrypted_key_b64, initialization_vector_b64, access_token)
+    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
+    package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
 
-    isExported, parts_data = statusu_eksportu(package_reference_number, access_token)
+    isExported, parts_data = export_status(package_reference_number, access_token)
 
     if isExported:
-        pobieranie_paczki(parts_data, symmetric_key, initialization_vector)
+        download_package(parts_data, symmetric_key, initialization_vector)
