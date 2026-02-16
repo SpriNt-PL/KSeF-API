@@ -4,8 +4,9 @@ import asyncio
 import pathlib
 from zipfile import ZipFile
 from playwright.async_api import async_playwright
+from lxml import etree
 
-RENDER_TIME_DELAY = 1000 # miliseconds
+#RENDER_TIME_DELAY = 1000 # miliseconds
 
 ARCHIVE_FOLDER = './Invoices/Archives'
 EXTRACTED_FOLDER = './Invoices/Extracted'
@@ -15,6 +16,8 @@ PDF_INVOICES_FOLDER = './Invoices/PDF_Invoices'
 
 XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
+
+XSL_STYLE_FILE = './Invoices/Prepared_XML_Invoices/Scheme/styl.xsl'
 
 def extract_files():
     files = os.listdir(ARCHIVE_FOLDER)
@@ -81,32 +84,58 @@ def edit_xml_files():
 
 
 async def save_xml_as_pdf():
-    async with async_playwright() as p:
+    
+    try:
 
-        browser = await p.chromium.launch(args=['--allow-file-access-from-files'])
-        page = await browser.new_page()
+        async with async_playwright() as p:
 
-        for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
-            xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
-            xml_path_abs = os.path.abspath(xml_path)
-            
-            pdf_path = os.path.join(PDF_INVOICES_FOLDER, file)
+            browser = await p.chromium.launch(args=['--allow-file-access-from-files'])
+            page = await browser.new_page()
 
-            file_url = pathlib.Path(xml_path_abs).as_uri()
+            for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
+                
+                if file.endswith('.xml'):
+                    print(f"Preparing PDF for {file}")
 
-            print(f"Preparing PDF for {file}")
+                    xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
+                    #xml_path_abs = os.path.abspath(xml_path)
 
-            await page.goto(file_url)
+                    xml_dom = etree.parse(xml_path)
+                    print("a")
+                    xsl_dom = etree.parse(XSL_STYLE_FILE)
+                    print("b")
 
-            await page.wait_for_timeout(RENDER_TIME_DELAY)
+                    transform = etree.XSLT(xsl_dom)
+                    print("c")
 
-            await page.pdf(
-                path = pdf_path,
-                format='A4',
-                print_background=True
-            )
+                    result_html = transform(xml_dom)
+                    print("d")
+                    html_string = str(result_html)
 
-        await browser.close()
+                    print("HTML prepared")
+                        
+                    pdf_path = os.path.join(PDF_INVOICES_FOLDER, file)
+
+                    #file_url = pathlib.Path(xml_path_abs).as_uri()
+
+                    
+
+                    await page.set_content(html_string, wait_until="networkidle")
+
+                    #await page.wait_for_timeout(RENDER_TIME_DELAY)
+
+                    await page.pdf(
+                        path = pdf_path,
+                        format='A4',
+                        print_background=True
+                    )
+
+            await browser.close()
+
+    except Exception as e:
+        print(f"Error occured: {e}")
+
+
 
 
 if __name__ == "__main__":
