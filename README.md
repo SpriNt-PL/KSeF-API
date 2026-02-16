@@ -1,3 +1,5 @@
 # KSeF-API
 
-Dodać Unieważnienie aktualnej sesji uwierzytelnienia - delete /auth/sessions/current
+Muszę dodać automatyczne tworzenie folderów jeśli jeszcze nie istnieją.
+
+Edycja XML

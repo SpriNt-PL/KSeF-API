@@ -272,12 +272,12 @@ def download_package(parts_data, symmetric_key, initialization_vector):
 
             part_name = part_name[:-8]
 
-            output_file = f"{part_name}.zip"
+            output_path = f"Invoices/Archives/{part_name}.zip"
 
-            with open(output_file, "wb") as f:
+            with open(output_path, "wb") as f:
                 f.write(decrypted_zip)
 
-            print(f"Saved {output_file}")
+            print(f"Saved in {output_path}")
 
         except Exception as e:
             print(f"Decipher error: {e}")
