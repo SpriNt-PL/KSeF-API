@@ -1,7 +1,7 @@
 import os
 import shutil
 import asyncio
-import pathlib
+import timeit
 from zipfile import ZipFile
 from playwright.async_api import async_playwright
 from lxml import etree
@@ -86,6 +86,8 @@ def edit_xml_files():
 async def save_xml_as_pdf():
     
     try:
+        parser = etree.XMLParser(no_network=False, resolve_entities=True)
+        access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
 
         async with async_playwright() as p:
 
@@ -98,31 +100,22 @@ async def save_xml_as_pdf():
                     print(f"Preparing PDF for {file}")
 
                     xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
-                    #xml_path_abs = os.path.abspath(xml_path)
 
-                    xml_dom = etree.parse(xml_path)
-                    print("a")
-                    xsl_dom = etree.parse(XSL_STYLE_FILE)
-                    print("b")
+                    xml_dom = etree.parse(xml_path, parser=parser)
+                    xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
 
-                    transform = etree.XSLT(xsl_dom)
-                    print("c")
+                    transform = etree.XSLT(xsl_dom, access_control=access_control)
 
                     result_html = transform(xml_dom)
-                    print("d")
-                    html_string = str(result_html)
+                    html_string = etree.tostring(result_html, method='html', encoding='unicode')
 
                     print("HTML prepared")
-                        
-                    pdf_path = os.path.join(PDF_INVOICES_FOLDER, file)
-
-                    #file_url = pathlib.Path(xml_path_abs).as_uri()
-
                     
+                    pdf_filename = file.replace('.xml', '.pdf')
+                    pdf_path = os.path.join(PDF_INVOICES_FOLDER, pdf_filename)
+
 
                     await page.set_content(html_string, wait_until="networkidle")
-
-                    #await page.wait_for_timeout(RENDER_TIME_DELAY)
 
                     await page.pdf(
                         path = pdf_path,
@@ -139,6 +132,8 @@ async def save_xml_as_pdf():
 
 
 if __name__ == "__main__":
+    start_time = timeit.timeit()
+
     print("Invoice preparation started")
 
     print("\n 1. Unzipping the archive with invoices")
@@ -149,4 +144,8 @@ if __name__ == "__main__":
 
     print("\n 3. Save XML invoices as PDF")
     asyncio.run(save_xml_as_pdf())
+
+    end_time = timeit.timeit()
+
+    print(f"Execution time: {end_time - start_time} seconds")
 
