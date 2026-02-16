@@ -162,6 +162,8 @@ async def process_file(browser, file, transformer, parser, semaphore):
 
 # Asynchroniczna (szybsza wersja)
 async def save_xml_as_pdf_async():
+    start_time = time.time()
+
     parser = etree.XMLParser(no_network=False, resolve_entities=True)
     access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
 
@@ -170,6 +172,11 @@ async def save_xml_as_pdf_async():
 
     semaphore = asyncio.Semaphore(MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES)
 
+    end_time = time.time()
+
+    print(f"1. Process Execution time: {end_time - start_time} seconds")
+
+    start_time = time.time()
     async with async_playwright() as p:
         browser = await p.chromium.launch()
 
@@ -186,22 +193,25 @@ async def save_xml_as_pdf_async():
         
         await browser.close()
 
+    end_time = time.time()
+
+    print(f"2. Process Execution time: {end_time - start_time} seconds")
 
 if __name__ == "__main__":
     start_time = time.time()
 
     print("Invoice preparation started")
 
-    print("\n 1. Unzipping the archive with invoices")
+    print("\n1. Unzipping the archive with invoices")
     extract_files()
 
-    print("\n 2. Editing the XML files so that it is possible to visualize them")
+    print("\n2. Editing the XML files so that it is possible to visualize them")
     edit_xml_files()
 
-    print("\n 3. Save XML invoices as PDF")
+    print("\n3. Save XML invoices as PDF")
     asyncio.run(save_xml_as_pdf_async())
 
     end_time = time.time()
 
-    print(f"Execution time: {end_time - start_time} seconds")
+    print(f"\nTotal execution time: {end_time - start_time} seconds")
 
