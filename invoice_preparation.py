@@ -4,6 +4,7 @@ import asyncio
 import time
 from zipfile import ZipFile
 from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
 from lxml import etree
 
 #RENDER_TIME_DELAY = 1000 # miliseconds
@@ -18,6 +19,8 @@ XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
 
 XSL_STYLE_FILE = './Invoices/Prepared_XML_Invoices/Scheme/styl.xsl'
+
+MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 10
 
 def extract_files():
     files = os.listdir(ARCHIVE_FOLDER)
@@ -83,6 +86,7 @@ def edit_xml_files():
     print("Files successfully edited")
 
 
+# Sychroniczna (pierwsza wersja)
 def save_xml_as_pdf():
     
     try:
@@ -94,6 +98,9 @@ def save_xml_as_pdf():
             browser = p.chromium.launch(args=['--allow-file-access-from-files'])
             page = browser.new_page()
 
+            xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
+            transform = etree.XSLT(xsl_dom, access_control=access_control)
+
             for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
                 
                 if file.endswith('.xml'):
@@ -102,9 +109,6 @@ def save_xml_as_pdf():
                     xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
 
                     xml_dom = etree.parse(xml_path, parser=parser)
-                    xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
-
-                    transform = etree.XSLT(xsl_dom, access_control=access_control)
 
                     result_html = transform(xml_dom)
                     html_string = etree.tostring(result_html, method='html', encoding='unicode')
@@ -129,6 +133,58 @@ def save_xml_as_pdf():
         print(f"Error occured: {e}")
 
 
+async def process_file(browser, file, transformer, parser, semaphore):
+    
+    async with semaphore:
+        xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
+
+        xml_dom = etree.parse(xml_path, parser=parser)
+
+        result_html = transformer(xml_dom)
+        html_string = etree.tostring(result_html, method='html', encoding='unicode')
+
+        page = await browser.new_page()
+        await page.set_content(html_string, wait_until="load")
+
+        pdf_filename = file.replace('.xml', '.pdf')
+        pdf_path = os.path.join(PDF_INVOICES_FOLDER, pdf_filename)
+
+        await page.pdf(
+            path = pdf_path,
+            format='A4',
+            print_background=True
+        )
+
+        await page.close()
+
+        print(f"Ready: {file}")
+
+
+# Asynchroniczna (szybsza wersja)
+async def save_xml_as_pdf_async():
+    parser = etree.XMLParser(no_network=False, resolve_entities=True)
+    access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
+
+    xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
+    transformer = etree.XSLT(xsl_dom, access_control=access_control)
+
+    semaphore = asyncio.Semaphore(MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES)
+
+    async with async_playwright() as p:
+        browser = await p.chromium.launch()
+
+        tasks = []
+
+        for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
+            if file.endswith('.xml'):
+                tasks.append(
+                    process_file(browser, file, transformer, parser, semaphore)
+                )
+
+        if tasks:
+            await asyncio.gather(*tasks)
+        
+        await browser.close()
 
 
 if __name__ == "__main__":
@@ -143,7 +199,7 @@ if __name__ == "__main__":
     edit_xml_files()
 
     print("\n 3. Save XML invoices as PDF")
-    save_xml_as_pdf()
+    asyncio.run(save_xml_as_pdf_async())
 
     end_time = time.time()
 
