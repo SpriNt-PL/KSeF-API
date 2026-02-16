@@ -1,6 +1,7 @@
 .env
 .venv/
 Dane/*.xlsx
+Dane/*.json
 *.zip
 *.xml
 *.pdf
