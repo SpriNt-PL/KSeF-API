@@ -1,11 +1,17 @@
 import os
 import shutil
+import asyncio
+import pathlib
 from zipfile import ZipFile
+from playwright.async_api import async_playwright
+
+RENDER_TIME_DELAY = 1000 # miliseconds
 
 ARCHIVE_FOLDER = './Invoices/Archives'
 EXTRACTED_FOLDER = './Invoices/Extracted'
 OLD_ARCHIVE_FOLDER = './Invoices/Old_Archives'
 PREPARED_XML_INVOICES_FOLDER = './Invoices/Prepared_XML_Invoices'
+PDF_INVOICES_FOLDER = './Invoices/PDF_Invoices'
 
 XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
@@ -74,6 +80,35 @@ def edit_xml_files():
     print("Files successfully edited")
 
 
+async def save_xml_as_pdf():
+    async with async_playwright() as p:
+
+        browser = await p.chromium.launch(args=['--allow-file-access-from-files'])
+        page = await browser.new_page()
+
+        for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
+            xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
+            xml_path_abs = os.path.abspath(xml_path)
+            
+            pdf_path = os.path.join(PDF_INVOICES_FOLDER, file)
+
+            file_url = pathlib.Path(xml_path_abs).as_uri()
+
+            print(f"Preparing PDF for {file}")
+
+            await page.goto(file_url)
+
+            await page.wait_for_timeout(RENDER_TIME_DELAY)
+
+            await page.pdf(
+                path = pdf_path,
+                format='A4',
+                print_background=True
+            )
+
+        await browser.close()
+
+
 if __name__ == "__main__":
     print("Invoice preparation started")
 
@@ -82,4 +117,7 @@ if __name__ == "__main__":
 
     print("\n 2. Editing the XML files so that it is possible to visualize them")
     edit_xml_files()
+
+    print("\n 3. Save XML invoices as PDF")
+    asyncio.run(save_xml_as_pdf())
 
