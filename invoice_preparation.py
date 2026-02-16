@@ -1,9 +1,9 @@
 import os
 import shutil
 import asyncio
-import timeit
+import time
 from zipfile import ZipFile
-from playwright.async_api import async_playwright
+from playwright.sync_api import sync_playwright
 from lxml import etree
 
 #RENDER_TIME_DELAY = 1000 # miliseconds
@@ -83,16 +83,16 @@ def edit_xml_files():
     print("Files successfully edited")
 
 
-async def save_xml_as_pdf():
+def save_xml_as_pdf():
     
     try:
         parser = etree.XMLParser(no_network=False, resolve_entities=True)
         access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
 
-        async with async_playwright() as p:
+        with sync_playwright() as p:
 
-            browser = await p.chromium.launch(args=['--allow-file-access-from-files'])
-            page = await browser.new_page()
+            browser = p.chromium.launch(args=['--allow-file-access-from-files'])
+            page = browser.new_page()
 
             for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
                 
@@ -115,15 +115,15 @@ async def save_xml_as_pdf():
                     pdf_path = os.path.join(PDF_INVOICES_FOLDER, pdf_filename)
 
 
-                    await page.set_content(html_string, wait_until="networkidle")
+                    page.set_content(html_string, wait_until="networkidle")
 
-                    await page.pdf(
+                    page.pdf(
                         path = pdf_path,
                         format='A4',
                         print_background=True
                     )
 
-            await browser.close()
+            browser.close()
 
     except Exception as e:
         print(f"Error occured: {e}")
@@ -132,7 +132,7 @@ async def save_xml_as_pdf():
 
 
 if __name__ == "__main__":
-    start_time = timeit.timeit()
+    start_time = time.time()
 
     print("Invoice preparation started")
 
@@ -143,9 +143,9 @@ if __name__ == "__main__":
     edit_xml_files()
 
     print("\n 3. Save XML invoices as PDF")
-    asyncio.run(save_xml_as_pdf())
+    save_xml_as_pdf()
 
-    end_time = timeit.timeit()
+    end_time = time.time()
 
     print(f"Execution time: {end_time - start_time} seconds")
 
