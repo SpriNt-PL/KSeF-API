@@ -1,8 +1,6 @@
-# Change into DATA_FILE_PATH later
-DATA_FILE = './Data/data.json'
+DATA_FILE_PATH = './Data/data.json'
 
-# Change into INVOICE_DIRECTORY_PATH later
-INVOICE_DIRECTORY = './Invoices'
+INVOICE_DIRECTORY_PATH = './Invoices'
 
 ARCHIVE_DIRECTORY = 'Archive'
 INVOICE_XML_DIRECTORY = 'Invoice_XML'

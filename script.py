@@ -274,7 +274,7 @@ def download_package(parts_data, symmetric_key, initialization_vector, entity_na
 
             part_name = part_name[:-8]
 
-            output_path = f"{constants.INVOICE_DIRECTORY}/{entity_name}/Archive/{part_name}.zip"
+            output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{entity_name}/Archive/{part_name}.zip"
 
             with open(output_path, "wb") as f:
                 f.write(decrypted_zip)
@@ -309,7 +309,7 @@ if __name__ == "__main__":
 
     print("Program started.\n")
 
-    with open(constants.DATA_FILE, 'r') as file:
+    with open(constants.DATA_FILE_PATH, 'r') as file:
         entities = json.load(file)
 
     for entity in entities:
@@ -352,6 +352,3 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print(f"\nTotal execution time: {end_time - start_time} seconds")
-
-
-    

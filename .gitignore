@@ -4,6 +4,7 @@ __pycache__/
 .venv/
 Data/*.xlsx
 Data/*.json
+Data/Scheme/*
 *.zip
 *.xml
 *.pdf

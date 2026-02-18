@@ -10,18 +10,10 @@ from lxml import etree
 
 import constants
 
-#RENDER_TIME_DELAY = 1000 # miliseconds
-
-ARCHIVE_FOLDER = './Invoices_1/Archives'
-EXTRACTED_FOLDER = './Invoices_1/Extracted'
-OLD_ARCHIVE_FOLDER = './Invoices_1/Old_Archives'
-PREPARED_XML_INVOICES_FOLDER = './Invoices_1/Prepared_XML_Invoices'
-PDF_INVOICES_FOLDER = './Invoices_1/PDF_Invoices'
-
 XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
 
-XSL_STYLE_FILE = './Invoices_1/Prepared_XML_Invoices/Scheme/styl.xsl'
+XSL_STYLE_FILE = './Data/Scheme/styl.xsl'
 
 MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 10
 
@@ -97,7 +89,7 @@ def edit_xml_files(invoice_xml_directory_path):
 
 
 # Sychroniczna (pierwsza wersja)
-def save_xml_as_pdf():
+def save_xml_as_pdf(invoice_xml_directory_path, invoice_pdf_directory_path):
     
     try:
         parser = etree.XMLParser(no_network=False, resolve_entities=True)
@@ -111,12 +103,12 @@ def save_xml_as_pdf():
             xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
             transform = etree.XSLT(xsl_dom, access_control=access_control)
 
-            for file in os.listdir(PREPARED_XML_INVOICES_FOLDER):
+            for file in os.listdir(invoice_xml_directory_path):
                 
                 if file.endswith('.xml'):
                     print(f"Preparing PDF for {file}")
 
-                    xml_path = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
+                    xml_path = os.path.join(invoice_xml_directory_path, file)
 
                     xml_dom = etree.parse(xml_path, parser=parser)
 
@@ -126,7 +118,7 @@ def save_xml_as_pdf():
                     print("HTML prepared")
                     
                     pdf_filename = file.replace('.xml', '.pdf')
-                    pdf_path = os.path.join(PDF_INVOICES_FOLDER, pdf_filename)
+                    pdf_path = os.path.join(invoice_pdf_directory_path, pdf_filename)
 
 
                     page.set_content(html_string, wait_until="networkidle")
@@ -213,17 +205,17 @@ if __name__ == "__main__":
 
     print("Invoice preparation started")
 
-    with open(constants.DATA_FILE, 'r') as file:
+    with open(constants.DATA_FILE_PATH, 'r') as file:
         entities = json.load(file)
 
     for entity in entities:
 
         name = entity['name']
 
-        archive_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.ARCHIVE_DIRECTORY}"
-        old_archive_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
-        invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_XML_DIRECTORY}"
-        invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+        archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
+        old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+        invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+        invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
 
         print(f"Processing invoices belonging to: {name}")
 
@@ -241,4 +233,3 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print(f"\nTotal execution time: {end_time - start_time} seconds")
-
