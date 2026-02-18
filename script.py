@@ -8,11 +8,9 @@ from cryptography import x509
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding as aes_padding
 
+import constants
+
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
-
-DATA_FILE = './Data/data.json'
-
-INVOICE_DIRECTORY = './Invoices' 
 
 EXPORT_DELAY_TIME = 5
 
@@ -276,7 +274,7 @@ def download_package(parts_data, symmetric_key, initialization_vector, entity_na
 
             part_name = part_name[:-8]
 
-            output_path = f"{INVOICE_DIRECTORY}/{entity_name}/Archive/{part_name}.zip"
+            output_path = f"{constants.INVOICE_DIRECTORY}/{entity_name}/Archive/{part_name}.zip"
 
             with open(output_path, "wb") as f:
                 f.write(decrypted_zip)
@@ -311,7 +309,7 @@ if __name__ == "__main__":
 
     print("Program started.\n")
 
-    with open(DATA_FILE, 'r') as file:
+    with open(constants.DATA_FILE, 'r') as file:
         entities = json.load(file)
 
     for entity in entities:
@@ -320,7 +318,7 @@ if __name__ == "__main__":
         nip = entity['nip']
         token = entity['token']
 
-        print(f"Downloading invoice package for {name}")
+        print(f"\nDownloading invoice package for {name}")
     
         print("\n1. Certifying initiation")
         challange, timestamp = certifying_initiation()
