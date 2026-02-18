@@ -25,9 +25,7 @@ XSL_STYLE_FILE = './Invoices_1/Prepared_XML_Invoices/Scheme/styl.xsl'
 
 MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 10
 
-def extract_files(name):
-
-    archive_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.ARCHIVE_DIRECTORY}"
+def extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path):
 
     files = os.listdir(archive_directory_path)
 
@@ -40,13 +38,9 @@ def extract_files(name):
     source_archive_path = os.path.join(archive_directory_path, filename)
 
     print(source_archive_path)
-
-    invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_XML_DIRECTORY}"
     
     with ZipFile(source_archive_path, 'r') as zip_object:
         zip_object.extractall(path=invoice_xml_directory_path)
-
-    old_archive_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
 
     destination_archive_path = os.path.join(old_archive_directory_path, filename)
 
@@ -57,8 +51,7 @@ def extract_files(name):
     return True
 
 
-def edit_xml_files(name):
-    invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+def edit_xml_files(invoice_xml_directory_path):
 
     files = os.listdir(invoice_xml_directory_path)
 
@@ -150,11 +143,7 @@ def save_xml_as_pdf():
         print(f"Error occured: {e}")
 
 
-async def process_file(browser, file, transformer, parser, semaphore, name):
-    
-    invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_XML_DIRECTORY}"
-
-    invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+async def process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path):
 
     async with semaphore:
         xml_path = os.path.join(invoice_xml_directory_path, file)
@@ -182,7 +171,7 @@ async def process_file(browser, file, transformer, parser, semaphore, name):
 
 
 # Asynchroniczna (szybsza wersja)
-async def save_xml_as_pdf_async(name):
+async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path):
     start_time = time.time()
 
     parser = etree.XMLParser(no_network=False, resolve_entities=True)
@@ -192,8 +181,6 @@ async def save_xml_as_pdf_async(name):
     transformer = etree.XSLT(xsl_dom, access_control=access_control)
 
     semaphore = asyncio.Semaphore(MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES)
-
-    invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_XML_DIRECTORY}"
 
     end_time = time.time()
 
@@ -208,7 +195,7 @@ async def save_xml_as_pdf_async(name):
         for file in os.listdir(invoice_xml_directory_path):
             if file.endswith('.xml'):
                 tasks.append(
-                    process_file(browser, file, transformer, parser, semaphore, name)
+                    process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path)
                 )
 
         if tasks:
@@ -233,18 +220,23 @@ if __name__ == "__main__":
 
         name = entity['name']
 
+        archive_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.ARCHIVE_DIRECTORY}"
+        old_archive_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+        invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+        invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+
         print(f"Processing invoices belonging to: {name}")
 
         print("\n1. Unzipping the archive with invoices")
-        is_archive_present = extract_files(name)
+        is_archive_present = extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path)
 
         if is_archive_present:
 
             print("\n2. Editing the XML files so that it is possible to visualize them")
-            edit_xml_files(name)
+            edit_xml_files(invoice_xml_directory_path)
 
             print("\n3. Save XML invoices as PDF")
-            asyncio.run(save_xml_as_pdf_async(name))
+            asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path))
 
     end_time = time.time()
 
