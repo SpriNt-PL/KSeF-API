@@ -1,15 +1,42 @@
 import os
+import json
 
-INVOICE_FOLDER = './Invoices'
+DATA_DIRECTORY = './Data/data.json'
 
-def create_directries_structure():
+INVOICE_DIRECTORY = './Invoices' 
 
-    if os.path.isdir(INVOICE_FOLDER):
+def create_invoice_directory():
+
+    if os.path.isdir(INVOICE_DIRECTORY):
         print("Main invoice directory exists.")
     
     else:
-        os.mkdir(INVOICE_FOLDER)
+        os.mkdir(INVOICE_DIRECTORY)
         print("Main invoice directory created.")
 
+def create_entities_directories():
+
+    with open(DATA_DIRECTORY, 'r') as file:
+        entities = json.load(file)
+
+    for entity in entities:
+        name = entity['name']
+
+        entity_directory = f"{INVOICE_DIRECTORY}/{name}"
+
+        if os.path.isdir(entity_directory):
+            print(f"{name} directory exists.")
+
+        else:
+            os.mkdir(entity_directory)
+            print(f"{name} directory created.")
+    
+
+
 if __name__ == "__main__":
-    create_directries_structure()
+
+    print("\n1. Create main invoice directory")
+    create_invoice_directory()
+
+    print("\n2. Create entity directories")
+    create_entities_directories()
