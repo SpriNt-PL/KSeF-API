@@ -14,10 +14,7 @@ def create_invoice_directory():
         os.mkdir(INVOICE_DIRECTORY)
         print("Main invoice directory created.")
 
-def create_entities_directories():
-
-    with open(DATA_DIRECTORY, 'r') as file:
-        entities = json.load(file)
+def create_entities_directories(entities):
 
     for entity in entities:
         name = entity['name']
@@ -30,7 +27,21 @@ def create_entities_directories():
         else:
             os.mkdir(entity_directory)
             print(f"{name} directory created.")
-    
+
+
+def create_archive_directories(entities):
+
+    for entity in entities:
+        name = entity['name']
+
+        archive_directory = f"{INVOICE_DIRECTORY}/{name}/Archive"
+
+        if os.path.isdir(archive_directory):
+            print(f"Archive directory in {name} exists.")
+
+        else:
+            os.mkdir(archive_directory)
+            print(f"Archive directory in {name} created.")
 
 
 if __name__ == "__main__":
@@ -38,5 +49,11 @@ if __name__ == "__main__":
     print("\n1. Create main invoice directory")
     create_invoice_directory()
 
+    with open(DATA_DIRECTORY, 'r') as file:
+        entities = json.load(file)
+
     print("\n2. Create entity directories")
-    create_entities_directories()
+    create_entities_directories(entities)
+
+    print("\n3. Create archive directories")
+    create_archive_directories(entities)

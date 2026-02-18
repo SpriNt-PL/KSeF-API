@@ -2,7 +2,6 @@ import requests
 import os
 import base64
 import time
-from dotenv import load_dotenv
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
@@ -10,6 +9,11 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding as aes_padding
 
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
+
+DATA_FILE = './Data/data.json'
+
+INVOICE_DIRECTORY = './Invoices' 
+
 EXPORT_DELAY_TIME = 5
 
 # Inicjacja uwierzytelniania
@@ -242,7 +246,7 @@ def export_status(reference_number, access_token):
 
 
 # Pobieranie paczki
-def download_package(parts_data, symmetric_key, initialization_vector):
+def download_package(parts_data, symmetric_key, initialization_vector, entity_name):
 
     for part in parts_data:
 
@@ -272,7 +276,7 @@ def download_package(parts_data, symmetric_key, initialization_vector):
 
             part_name = part_name[:-8]
 
-            output_path = f"Invoices/Archives/{part_name}.zip"
+            output_path = f"{INVOICE_DIRECTORY}/{entity_name}/Archive/{part_name}.zip"
 
             with open(output_path, "wb") as f:
                 f.write(decrypted_zip)
@@ -301,44 +305,51 @@ def end_session(access_token):
 
 if __name__ == "__main__":
     import time
+    import json
 
     start_time = time.time()
 
     print("Program started.\n")
+
+    with open(DATA_FILE, 'r') as file:
+        entities = json.load(file)
+
+    for entity in entities:
+
+        name = entity['name']
+        nip = entity['nip']
+        token = entity['token']
+
+        print(f"Downloading invoice package for {name}")
     
-    print("1. Certifying initiation")
-    challange, timestamp = certifying_initiation()
+        print("\n1. Certifying initiation")
+        challange, timestamp = certifying_initiation()
 
-    print("\n2. Downloading certificates")
-    certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
+        print("\n2. Downloading certificates")
+        certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
 
-    load_dotenv()
+        print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
 
-    nip = os.getenv("NIP")
-    token = os.getenv("TOKEN") 
+        encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
+        session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
+        certifying_status(session_token, reference_number)
 
-    print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
+        print("\n4. Downloading access tokens")
 
-    encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
-    session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
-    certifying_status(session_token, reference_number)
+        access_token, refresh_token = download_access_tokens(session_token)
 
-    print("\n4. Downloading access tokens")
+        print("\n5. Downloading invoices")
 
-    access_token, refresh_token = download_access_tokens(session_token)
+        encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
+        package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
 
-    print("\n5. Downloading invoices")
+        isExported, parts_data = export_status(package_reference_number, access_token)
 
-    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
-    package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
+        if isExported:
+            download_package(parts_data, symmetric_key, initialization_vector, name)
 
-    isExported, parts_data = export_status(package_reference_number, access_token)
-
-    if isExported:
-        download_package(parts_data, symmetric_key, initialization_vector)
-
-    print("\n6. Ending session")
-    end_session(access_token)
+        print("\n6. Ending session")
+        end_session(access_token)
 
     end_time = time.time()
 
