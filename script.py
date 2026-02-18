@@ -282,7 +282,28 @@ def download_package(parts_data, symmetric_key, initialization_vector):
         except Exception as e:
             print(f"Decipher error: {e}")
 
+
+def end_session(access_token):
+
+    url = f"{PROD_URL}/auth/sessions/current"
+
+    headers = {
+        "Authorization": f"Bearer {access_token}"
+    }
+
+    response = requests.delete(url, headers=headers)
+
+    print(f"Response code: {response.status_code}")
+
+    if response.status_code == 204:
+        print("Session ended successfully")
+
+
 if __name__ == "__main__":
+    import time
+
+    start_time = time.time()
+
     print("Program started.\n")
     
     print("1. Certifying initiation")
@@ -306,7 +327,7 @@ if __name__ == "__main__":
 
     access_token, refresh_token = download_access_tokens(session_token)
 
-    print("\n4. Downloading invoices")
+    print("\n5. Downloading invoices")
 
     encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
     package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
@@ -315,3 +336,13 @@ if __name__ == "__main__":
 
     if isExported:
         download_package(parts_data, symmetric_key, initialization_vector)
+
+    print("\n6. Ending session")
+    end_session(access_token)
+
+    end_time = time.time()
+
+    print(f"\nTotal execution time: {end_time - start_time} seconds")
+
+
+    
