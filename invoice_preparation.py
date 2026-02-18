@@ -9,16 +9,16 @@ from lxml import etree
 
 #RENDER_TIME_DELAY = 1000 # miliseconds
 
-ARCHIVE_FOLDER = './Invoices/Archives'
-EXTRACTED_FOLDER = './Invoices/Extracted'
-OLD_ARCHIVE_FOLDER = './Invoices/Old_Archives'
-PREPARED_XML_INVOICES_FOLDER = './Invoices/Prepared_XML_Invoices'
-PDF_INVOICES_FOLDER = './Invoices/PDF_Invoices'
+ARCHIVE_FOLDER = './Invoices_1/Archives'
+EXTRACTED_FOLDER = './Invoices_1/Extracted'
+OLD_ARCHIVE_FOLDER = './Invoices_1/Old_Archives'
+PREPARED_XML_INVOICES_FOLDER = './Invoices_1/Prepared_XML_Invoices'
+PDF_INVOICES_FOLDER = './Invoices_1/PDF_Invoices'
 
 XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
 
-XSL_STYLE_FILE = './Invoices/Prepared_XML_Invoices/Scheme/styl.xsl'
+XSL_STYLE_FILE = './Invoices_1/Prepared_XML_Invoices/Scheme/styl.xsl'
 
 MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 10
 
@@ -27,7 +27,7 @@ def extract_files():
 
     if not files:
         print("Folder is empty!")
-        return
+        return False
 
     filename = files[0]
 
@@ -36,7 +36,7 @@ def extract_files():
     print(source_archive_path)
     
     with ZipFile(source_archive_path, 'r') as zip_object:
-        zip_object.extractall(path=EXTRACTED_FOLDER)
+        zip_object.extractall(path=PREPARED_XML_INVOICES_FOLDER)
 
     destination_archive_path = os.path.join(OLD_ARCHIVE_FOLDER, filename)
 
@@ -44,9 +44,11 @@ def extract_files():
 
     print(f"Archive moved to {OLD_ARCHIVE_FOLDER}")
 
+    return True
+
 
 def edit_xml_files():
-    files = os.listdir(EXTRACTED_FOLDER)
+    files = os.listdir(PREPARED_XML_INVOICES_FOLDER)
 
     if not files:
         print("Folder is empty!")
@@ -55,10 +57,13 @@ def edit_xml_files():
     for file in files:
         if file.endswith('.xml') and file != 'wyroznik.xml':
 
-            filepath = os.path.join(EXTRACTED_FOLDER, file)
+            filepath = os.path.join(PREPARED_XML_INVOICES_FOLDER, file)
 
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.readlines()
+
+            # Deleting original version of a file
+            os.remove(filepath)
 
             # Logic which ensures that prefix will be added in a proper way
             if content and content[0].startswith('<?xml'):
@@ -203,13 +208,15 @@ if __name__ == "__main__":
     print("Invoice preparation started")
 
     print("\n1. Unzipping the archive with invoices")
-    extract_files()
+    is_archive_present = extract_files()
 
-    print("\n2. Editing the XML files so that it is possible to visualize them")
-    edit_xml_files()
+    if is_archive_present:
 
-    print("\n3. Save XML invoices as PDF")
-    asyncio.run(save_xml_as_pdf_async())
+        print("\n2. Editing the XML files so that it is possible to visualize them")
+        edit_xml_files()
+
+        print("\n3. Save XML invoices as PDF")
+        asyncio.run(save_xml_as_pdf_async())
 
     end_time = time.time()
 
