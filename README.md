@@ -1,5 +1,8 @@
 # KSeF-API
 
-Muszę dodać automatyczne tworzenie folderów jeśli jeszcze nie istnieją.
+Filtrowanie faktur:
+Ściąganie z ostatnich 21 dni z filtrem
 
-Edycja XML
+Nowa struktura z uwzględnieniem administratorów
+
+

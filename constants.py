@@ -1,6 +1,7 @@
 DATA_FILE_PATH = './Data/data.json'
 
 INVOICE_DIRECTORY_PATH = './Invoices'
+#INVOICE_DIRECTORY_PATH = 'Z:/Kuba/Invoices'
 
 ARCHIVE_DIRECTORY = 'Archive'
 INVOICE_XML_DIRECTORY = 'Invoice_XML'
