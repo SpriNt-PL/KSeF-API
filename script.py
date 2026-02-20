@@ -310,44 +310,46 @@ if __name__ == "__main__":
     print("Program started.\n")
 
     with open(constants.DATA_FILE_PATH, 'r') as file:
-        entities = json.load(file)
+        supervision_scopes = json.load(file)
 
-    for entity in entities:
+    for scope in supervision_scopes:
 
-        name = entity['name']
-        nip = entity['nip']
-        token = entity['token']
+        for entity in scope['entity']:
 
-        print(f"\nDownloading invoice package for {name}")
-    
-        print("\n1. Certifying initiation")
-        challange, timestamp = certifying_initiation()
+            name = entity['name']
+            nip = entity['nip']
+            token = entity['token']
 
-        print("\n2. Downloading certificates")
-        certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
+            print(f"\nDownloading invoice package for {name}")
+        
+            print("\n1. Certifying initiation")
+            challange, timestamp = certifying_initiation()
 
-        print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
+            print("\n2. Downloading certificates")
+            certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
 
-        encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
-        session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
-        certifying_status(session_token, reference_number)
+            print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
 
-        print("\n4. Downloading access tokens")
+            encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
+            session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
+            certifying_status(session_token, reference_number)
 
-        access_token, refresh_token = download_access_tokens(session_token)
+            print("\n4. Downloading access tokens")
 
-        print("\n5. Downloading invoices")
+            access_token, refresh_token = download_access_tokens(session_token)
 
-        encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
-        package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
+            print("\n5. Downloading invoices")
 
-        isExported, parts_data = export_status(package_reference_number, access_token)
+            encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
+            package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
 
-        if isExported:
-            download_package(parts_data, symmetric_key, initialization_vector, name)
+            isExported, parts_data = export_status(package_reference_number, access_token)
 
-        print("\n6. Ending session")
-        end_session(access_token)
+            if isExported:
+                download_package(parts_data, symmetric_key, initialization_vector, name)
+
+            print("\n6. Ending session")
+            end_session(access_token)
 
     end_time = time.time()
 
