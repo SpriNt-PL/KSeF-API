@@ -182,7 +182,7 @@ async def process_file(browser, file, transformer, parser, semaphore, invoice_xm
 
 
 # Asynchroniczna (szybsza wersja)
-async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path):
+async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, files):
     start_time = time.time()
 
     parser = etree.XMLParser(no_network=False, resolve_entities=True)
@@ -203,7 +203,7 @@ async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_director
 
         tasks = []
 
-        for file in os.listdir(invoice_xml_directory_path):
+        for file in files:
             if file.endswith('.xml'):
                 tasks.append(
                     process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path)
@@ -246,8 +246,8 @@ if __name__ == "__main__":
             print("\n2. Editing the XML files so that it is possible to visualize them")
             edit_xml_files(invoice_xml_directory_path, new_invoices)
 
-        #     print("\n3. Save XML invoices as PDF")
-        #     asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path))
+            print("\n3. Save XML invoices as PDF")
+            asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, new_invoices))
 
     end_time = time.time()
 
