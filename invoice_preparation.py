@@ -30,7 +30,7 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
 
     if not files:
         print("Folder is empty!")
-        return False
+        return False, None
 
     filename = files[0]
 
@@ -48,7 +48,10 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
         for file in new_files:
             zip_object.extract(file, path=invoice_xml_directory_path)
 
-    print(new_files)
+    if len(new_files) > 0:
+        print(f"New files extracted: {new_files}")
+    else:
+        print("No new files found.")
 
     destination_archive_path = os.path.join(old_archive_directory_path, filename)
 
@@ -56,12 +59,12 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
 
     print(f"Archive moved to {old_archive_directory_path}")
 
-    return True
+    return True, new_files
 
 
-def edit_xml_files(invoice_xml_directory_path):
+def edit_xml_files(invoice_xml_directory_path, files):
 
-    files = os.listdir(invoice_xml_directory_path)
+    print(f"Editing following files: {files}")
 
     if not files:
         print("Folder is empty!")
@@ -236,12 +239,12 @@ if __name__ == "__main__":
         print(f"Processing invoices belonging to: {name}")
 
         print("\n1. Unzipping the archive with invoices")
-        is_archive_present = extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path)
+        is_archive_present, new_invoices = extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path)
 
-        # if is_archive_present:
+        if is_archive_present:
 
-        #     print("\n2. Editing the XML files so that it is possible to visualize them")
-        #     edit_xml_files(invoice_xml_directory_path)
+            print("\n2. Editing the XML files so that it is possible to visualize them")
+            edit_xml_files(invoice_xml_directory_path, new_invoices)
 
         #     print("\n3. Save XML invoices as PDF")
         #     asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path))
