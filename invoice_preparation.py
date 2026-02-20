@@ -17,6 +17,13 @@ XSL_STYLE_FILE = './Data/Scheme/styl.xsl'
 
 MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 10
 
+def choose_only_new_files(zip_file_list, destination_file_list):
+
+    new_files = list(set(zip_file_list).difference(destination_file_list))
+
+    return new_files
+
+
 def extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path):
 
     files = os.listdir(archive_directory_path)
@@ -30,9 +37,18 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
     source_archive_path = os.path.join(archive_directory_path, filename)
 
     print(source_archive_path)
+
+    invoice_xml_directory_file_list = os.listdir(invoice_xml_directory_path)
     
     with ZipFile(source_archive_path, 'r') as zip_object:
-        zip_object.extractall(path=invoice_xml_directory_path)
+        file_list = zip_object.namelist()
+
+        new_files = choose_only_new_files(file_list, invoice_xml_directory_file_list)
+
+        for file in new_files:
+            zip_object.extract(file, path=invoice_xml_directory_path)
+
+    print(new_files)
 
     destination_archive_path = os.path.join(old_archive_directory_path, filename)
 
@@ -222,13 +238,13 @@ if __name__ == "__main__":
         print("\n1. Unzipping the archive with invoices")
         is_archive_present = extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path)
 
-        if is_archive_present:
+        # if is_archive_present:
 
-            print("\n2. Editing the XML files so that it is possible to visualize them")
-            edit_xml_files(invoice_xml_directory_path)
+        #     print("\n2. Editing the XML files so that it is possible to visualize them")
+        #     edit_xml_files(invoice_xml_directory_path)
 
-            print("\n3. Save XML invoices as PDF")
-            asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path))
+        #     print("\n3. Save XML invoices as PDF")
+        #     asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path))
 
     end_time = time.time()
 
