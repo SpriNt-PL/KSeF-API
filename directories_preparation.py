@@ -12,61 +12,67 @@ def create_invoice_directory():
         os.mkdir(constants.INVOICE_DIRECTORY_PATH)
         print("Main invoice directory created.")
 
-def create_entities_directories(entities):
+def create_entities_directories(supervision_scopes):
 
-    for entity in entities:
-        name = entity['name']
+    for scope in supervision_scopes:
 
-        entity_directory = f"{constants.INVOICE_DIRECTORY_PATH}/{name}"
+        for entity in scope['entity']:
 
-        if os.path.isdir(entity_directory):
-            print(f"{name} directory exists.")
+            name = entity['name']
 
-        else:
-            os.mkdir(entity_directory)
-            print(f"{name} directory created.")
+            entity_directory = f"{constants.INVOICE_DIRECTORY_PATH}/{name}"
+
+            if os.path.isdir(entity_directory):
+                print(f"{name} directory exists.")
+
+            else:
+                os.mkdir(entity_directory)
+                print(f"{name} directory created.")
 
 
-def create_essential_directories_for_each_entity(entities):
+def create_essential_directories_for_each_entity(supervision_scopes):
 
-    for entity in entities:
-        name = entity['name']
+    for scope in supervision_scopes:
 
-        archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
+        for entity in scope['entity']:
 
-        invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+            name = entity['name']
 
-        invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+            archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
 
-        old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+            invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
 
-        if os.path.isdir(archive_directory_path):
-            print(f"Archive directory in {name} exists.")
+            invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
 
-        else:
-            os.mkdir(archive_directory_path)
-            print(f"Archive directory in {name} created.")
+            old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
 
-        if os.path.isdir(invoice_xml_directory_path):
-            print(f"Invoice_XML directory in {name} exists.")
+            if os.path.isdir(archive_directory_path):
+                print(f"Archive directory in {name} exists.")
 
-        else:
-            os.mkdir(invoice_xml_directory_path)
-            print(f"Invoice_XML directory in {name} created.")
+            else:
+                os.mkdir(archive_directory_path)
+                print(f"Archive directory in {name} created.")
 
-        if os.path.isdir(invoice_pdf_directory_path):
-            print(f"Invoice_PDF directory in {name} exists.")
+            if os.path.isdir(invoice_xml_directory_path):
+                print(f"Invoice_XML directory in {name} exists.")
 
-        else:
-            os.mkdir(invoice_pdf_directory_path)
-            print(f"Invoice_PDF directory in {name} created.")
+            else:
+                os.mkdir(invoice_xml_directory_path)
+                print(f"Invoice_XML directory in {name} created.")
 
-        if os.path.isdir(old_archive_directory_path):
-            print(f"Old_Archive directory in {name} exists.")
+            if os.path.isdir(invoice_pdf_directory_path):
+                print(f"Invoice_PDF directory in {name} exists.")
 
-        else:
-            os.mkdir(old_archive_directory_path)
-            print(f"Old_Archive directory in {name} created.")
+            else:
+                os.mkdir(invoice_pdf_directory_path)
+                print(f"Invoice_PDF directory in {name} created.")
+
+            if os.path.isdir(old_archive_directory_path):
+                print(f"Old_Archive directory in {name} exists.")
+
+            else:
+                os.mkdir(old_archive_directory_path)
+                print(f"Old_Archive directory in {name} created.")
         
 
 
@@ -76,10 +82,10 @@ if __name__ == "__main__":
     create_invoice_directory()
 
     with open(constants.DATA_FILE_PATH, 'r') as file:
-        entities = json.load(file)
+        supervision_scopes = json.load(file)
 
     print("\n2. Create entity directories")
-    create_entities_directories(entities)
+    create_entities_directories(supervision_scopes)
 
     print("\n3. Create essential directories directories for each entity")
-    create_essential_directories_for_each_entity(entities)
+    create_essential_directories_for_each_entity(supervision_scopes)

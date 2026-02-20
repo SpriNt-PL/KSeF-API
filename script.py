@@ -274,7 +274,7 @@ def download_package(parts_data, symmetric_key, initialization_vector, entity_na
 
             part_name = part_name[:-8]
 
-            output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{entity_name}/Archive/{part_name}.zip"
+            output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{entity_name}/{constants.ARCHIVE_DIRECTORY}/{part_name}.zip"
 
             with open(output_path, "wb") as f:
                 f.write(decrypted_zip)
