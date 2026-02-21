@@ -3,13 +3,13 @@ import json
 
 import constants
 
-def create_invoice_directory():
+def create_invoice_directory(base_path):
 
-    if os.path.isdir(constants.INVOICE_DIRECTORY_PATH):
+    if os.path.isdir(base_path):
         print("Main invoice directory exists.")
     
     else:
-        os.mkdir(constants.INVOICE_DIRECTORY_PATH)
+        os.mkdir(base_path)
         print("Main invoice directory created.")
 
 def create_entities_directories(supervision_scopes):
@@ -73,13 +73,32 @@ def create_essential_directories_for_each_entity(supervision_scopes):
             else:
                 os.mkdir(old_archive_directory_path)
                 print(f"Old_Archive directory in {name} created.")
-        
+
+
+def create_directory_for_each_supervisor(base_path, supervision_scopes):
+
+    for scope in supervision_scopes:
+
+        supervisior = scope['supervisor']
+
+        supervisor_directory_path = f"{base_path}/{supervisior}"
+
+        if os.path.isdir(supervisor_directory_path):
+                print(f"Old_Archive directory in {supervisior} exists.")
+
+        else:
+            os.mkdir(supervisor_directory_path)
+            print(f"Old_Archive directory in {supervisior} created.")
+
+
 
 
 if __name__ == "__main__":
 
+    print("\nPreparing working directory for file processing")
+
     print("\n1. Create main invoice directory")
-    create_invoice_directory()
+    create_invoice_directory(constants.INVOICE_DIRECTORY_PATH)
 
     with open(constants.DATA_FILE_PATH, 'r') as file:
         supervision_scopes = json.load(file)
@@ -89,3 +108,14 @@ if __name__ == "__main__":
 
     print("\n3. Create essential directories directories for each entity")
     create_essential_directories_for_each_entity(supervision_scopes)
+
+    print("\nPreparing main output directory from where invoices are being processed manually")
+
+    print("\n1. Create main invoice directory")
+    create_invoice_directory(constants.OUTPUT_DIRECTORY_PATH)
+
+    print("\n2. Create directory for each supervisor")
+    create_directory_for_each_supervisor(constants.OUTPUT_DIRECTORY_PATH, supervision_scopes)
+
+
+

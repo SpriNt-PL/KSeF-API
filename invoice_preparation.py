@@ -225,29 +225,31 @@ if __name__ == "__main__":
     print("Invoice preparation started")
 
     with open(constants.DATA_FILE_PATH, 'r') as file:
-        entities = json.load(file)
+        supervision_scope = json.load(file)
 
-    for entity in entities:
+    for scope in supervision_scope:
+        
+        for entity in scope['entity']:
 
-        name = entity['name']
+            name = entity['name']
 
-        archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
-        old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
-        invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
-        invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+            archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
+            old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+            invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+            invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
 
-        print(f"Processing invoices belonging to: {name}")
+            print(f"Processing invoices belonging to: {name}")
 
-        print("\n1. Unzipping the archive with invoices")
-        is_archive_present, new_invoices = extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path)
+            print("\n1. Unzipping the archive with invoices")
+            is_archive_present, new_invoices = extract_files(archive_directory_path, old_archive_directory_path, invoice_xml_directory_path)
 
-        if is_archive_present:
+            if is_archive_present:
 
-            print("\n2. Editing the XML files so that it is possible to visualize them")
-            edit_xml_files(invoice_xml_directory_path, new_invoices)
+                print("\n2. Editing the XML files so that it is possible to visualize them")
+                edit_xml_files(invoice_xml_directory_path, new_invoices)
 
-            print("\n3. Save XML invoices as PDF")
-            asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, new_invoices))
+                print("\n3. Save XML invoices as PDF")
+                asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, new_invoices))
 
     end_time = time.time()
 
