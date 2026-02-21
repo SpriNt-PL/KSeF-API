@@ -2,6 +2,7 @@ import requests
 import os
 import base64
 import time
+from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
@@ -169,6 +170,14 @@ def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token):
 
     url = f"{PROD_URL}/invoices/exports"
 
+    now = datetime.now(timezone.utc)
+    print(f"Today is {now}")
+
+    date_from = (now - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0)
+    print(f"Downloading invoices not older than {date_from}")
+
+    from_str = date_from.strftime('%Y-%m-%dT%H:%M:%SZ')
+
     headers = {
         "Authorization": f"Bearer {access_token}"
     }
@@ -182,7 +191,8 @@ def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token):
             "subjectType": "Subject2", 
             "dateRange": {
                 "dateType": "Invoicing",
-                "from": "2026-02-01T00:00:00Z",
+                "from": from_str,
+                #"from": "2026-02-01T00:00:00Z",
                 #"to": "2026-02-15T23:59:59Z"
             }
         }
