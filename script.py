@@ -166,15 +166,9 @@ def encrypt_export(certificate):
 
 
 # Eksport faktur
-def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token):
+def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, date_from):
 
     url = f"{PROD_URL}/invoices/exports"
-
-    now = datetime.now(timezone.utc)
-    print(f"Today is {now}")
-
-    date_from = (now - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0)
-    print(f"Downloading invoices not older than {date_from}")
 
     from_str = date_from.strftime('%Y-%m-%dT%H:%M:%SZ')
 
@@ -319,6 +313,12 @@ if __name__ == "__main__":
 
     print("Program started.\n")
 
+    now = datetime.now(timezone.utc)
+    print(f"Today is {now}")
+
+    date_from = (now - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0)
+    print(f"Downloading invoices not older than {date_from}")
+
     with open(constants.DATA_FILE_PATH, 'r') as file:
         supervision_scopes = json.load(file)
 
@@ -351,7 +351,7 @@ if __name__ == "__main__":
             print("\n5. Downloading invoices")
 
             encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
-            package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
+            package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, date_from)
 
             isExported, parts_data = export_status(package_reference_number, access_token)
 
