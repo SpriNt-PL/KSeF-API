@@ -154,7 +154,7 @@ def save_xml_as_pdf(invoice_xml_directory_path, invoice_pdf_directory_path):
         print(f"Error occured: {e}")
 
 
-async def process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path):
+async def process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path):
 
     async with semaphore:
         xml_path = os.path.join(invoice_xml_directory_path, file)
@@ -167,14 +167,26 @@ async def process_file(browser, file, transformer, parser, semaphore, invoice_xm
         page = await browser.new_page()
         await page.set_content(html_string, wait_until="load")
 
-        pdf_filename = file.replace('.xml', '.pdf')
-        pdf_path = os.path.join(invoice_pdf_directory_path, pdf_filename)
-
-        await page.pdf(
-            path = pdf_path,
+        pdf_bytes = await page.pdf(
             format='A4',
             print_background=True
         )
+
+        pdf_filename = file.replace('.xml', '.pdf')
+
+        pdf_path_1 = os.path.join(invoice_pdf_directory_path, pdf_filename)
+        with open(pdf_path_1, 'wb') as f:
+            f.write(pdf_bytes)
+
+        pdf_path_2 = os.path.join(supervisor_directory_path, pdf_filename)
+        with open(pdf_path_2, 'wb') as f:
+            f.write(pdf_bytes) 
+
+        # await page.pdf(
+        #     path = pdf_path,
+        #     format='A4',
+        #     print_background=True
+        # )
 
         await page.close()
 
@@ -182,7 +194,7 @@ async def process_file(browser, file, transformer, parser, semaphore, invoice_xm
 
 
 # Asynchroniczna (szybsza wersja)
-async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, files):
+async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path, files):
     start_time = time.time()
 
     parser = etree.XMLParser(no_network=False, resolve_entities=True)
@@ -206,7 +218,7 @@ async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_director
         for file in files:
             if file.endswith('.xml'):
                 tasks.append(
-                    process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path)
+                    process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path)
                 )
 
         if tasks:
@@ -229,6 +241,8 @@ if __name__ == "__main__":
 
     for scope in supervision_scope:
         
+        supervisor_name = scope['supervisor']
+
         for entity in scope['entity']:
 
             name = entity['name']
@@ -237,6 +251,7 @@ if __name__ == "__main__":
             old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
             invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
             invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+            supervisor_directory_path = f"{constants.OUTPUT_DIRECTORY_PATH}/{supervisor_name}"
 
             print(f"Processing invoices belonging to: {name}")
 
@@ -249,7 +264,7 @@ if __name__ == "__main__":
                 edit_xml_files(invoice_xml_directory_path, new_invoices)
 
                 print("\n3. Save XML invoices as PDF")
-                asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, new_invoices))
+                asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path, new_invoices))
 
     end_time = time.time()
 
