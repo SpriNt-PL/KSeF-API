@@ -13,4 +13,5 @@ TypeError: cannot unpack non-iterable NoneType object
 Muszę zabezpieczyć sytuacje błędów w api
 Tutaj powyżej api nie zwróciło kodu 200 więc nie uzyskałem tokenów
 
+Naprawić problem z playwright
 
