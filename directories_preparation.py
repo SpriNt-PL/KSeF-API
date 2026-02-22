@@ -91,9 +91,7 @@ def create_directory_for_each_supervisor(base_path, supervision_scopes):
             print(f"Old_Archive directory in {supervisior} created.")
 
 
-
-
-if __name__ == "__main__":
+def prepare_directories():
 
     print("\nPreparing working directory for file processing")
 
@@ -116,6 +114,10 @@ if __name__ == "__main__":
 
     print("\n2. Create directory for each supervisor")
     create_directory_for_each_supervisor(constants.OUTPUT_DIRECTORY_PATH, supervision_scopes)
+
+if __name__ == "__main__":
+
+    prepare_directories()
 
 
 

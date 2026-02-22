@@ -2,6 +2,7 @@ import requests
 import os
 import base64
 import time
+import json
 from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -305,10 +306,7 @@ def end_session(access_token):
         print("Session ended successfully")
 
 
-if __name__ == "__main__":
-    import time
-    import json
-
+def download_invoices():
     start_time = time.time()
 
     print("Program started.\n")
@@ -364,3 +362,7 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print(f"\nTotal execution time: {end_time - start_time} seconds")
+
+if __name__ == "__main__":
+
+    download_invoices()

@@ -230,8 +230,9 @@ async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_director
 
     print(f"2. Process Execution time: {end_time - start_time} seconds")
 
-if __name__ == "__main__":
-    
+
+def prepare_invoices():
+
     start_time = time.time()
 
     print("Invoice preparation started")
@@ -269,3 +270,8 @@ if __name__ == "__main__":
     end_time = time.time()
 
     print(f"\nTotal execution time: {end_time - start_time} seconds")
+
+
+if __name__ == "__main__":
+    
+    prepare_invoices()
