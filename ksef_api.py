@@ -2,14 +2,18 @@ import requests
 import os
 import base64
 import time
-from dotenv import load_dotenv
+import json
+from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding as aes_padding
 
+import constants
+
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
+
 EXPORT_DELAY_TIME = 5
 
 # Inicjacja uwierzytelniania
@@ -163,9 +167,11 @@ def encrypt_export(certificate):
 
 
 # Eksport faktur
-def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token):
+def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, date_from):
 
     url = f"{PROD_URL}/invoices/exports"
+
+    from_str = date_from.strftime('%Y-%m-%dT%H:%M:%SZ')
 
     headers = {
         "Authorization": f"Bearer {access_token}"
@@ -180,8 +186,9 @@ def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token):
             "subjectType": "Subject2", 
             "dateRange": {
                 "dateType": "Invoicing",
-                "from": "2026-02-01T00:00:00Z",
-                #"to": "2026-02-13T23:59:59Z"
+                "from": from_str,
+                #"from": "2026-02-01T00:00:00Z",
+                #"to": "2026-02-15T23:59:59Z"
             }
         }
     }
@@ -242,7 +249,7 @@ def export_status(reference_number, access_token):
 
 
 # Pobieranie paczki
-def download_package(parts_data, symmetric_key, initialization_vector):
+def download_package(parts_data, symmetric_key, initialization_vector, entity_name):
 
     for part in parts_data:
 
@@ -272,7 +279,7 @@ def download_package(parts_data, symmetric_key, initialization_vector):
 
             part_name = part_name[:-8]
 
-            output_path = f"Invoices/Archives/{part_name}.zip"
+            output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{entity_name}/{constants.ARCHIVE_DIRECTORY}/{part_name}.zip"
 
             with open(output_path, "wb") as f:
                 f.write(decrypted_zip)
@@ -299,50 +306,63 @@ def end_session(access_token):
         print("Session ended successfully")
 
 
-if __name__ == "__main__":
-    import time
-
+def download_invoices():
     start_time = time.time()
 
     print("Program started.\n")
-    
-    print("1. Certifying initiation")
-    challange, timestamp = certifying_initiation()
 
-    print("\n2. Downloading certificates")
-    certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
+    now = datetime.now(timezone.utc)
+    print(f"Today is {now}")
 
-    load_dotenv()
+    date_from = (now - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0)
+    print(f"Downloading invoices not older than {date_from}")
 
-    nip = os.getenv("NIP")
-    token = os.getenv("TOKEN") 
+    with open(constants.DATA_FILE_PATH, 'r') as file:
+        supervision_scopes = json.load(file)
 
-    print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
+    for scope in supervision_scopes:
 
-    encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
-    session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
-    certifying_status(session_token, reference_number)
+        for entity in scope['entity']:
 
-    print("\n4. Downloading access tokens")
+            name = entity['name']
+            nip = entity['nip']
+            token = entity['token']
 
-    access_token, refresh_token = download_access_tokens(session_token)
+            print(f"\nDownloading invoice package for {name}")
+        
+            print("\n1. Certifying initiation")
+            challange, timestamp = certifying_initiation()
 
-    print("\n5. Downloading invoices")
+            print("\n2. Downloading certificates")
+            certificate_KsefTokenEncryption, certificate_SymmetricKeyEncryption  = download_certificates()
 
-    encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
-    package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token)
+            print(f"\n3. Certifying using token (NIP = {nip} oraz TOKEN = {token})")
 
-    isExported, parts_data = export_status(package_reference_number, access_token)
+            encrypted_token = creating_encryptedToken(token, timestamp, certificate_KsefTokenEncryption)
+            session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
+            certifying_status(session_token, reference_number)
 
-    if isExported:
-        download_package(parts_data, symmetric_key, initialization_vector)
+            print("\n4. Downloading access tokens")
 
-    print("\n6. Ending session")
-    end_session(access_token)
+            access_token, refresh_token = download_access_tokens(session_token)
+
+            print("\n5. Downloading invoices")
+
+            encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
+            package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, date_from)
+
+            isExported, parts_data = export_status(package_reference_number, access_token)
+
+            if isExported:
+                download_package(parts_data, symmetric_key, initialization_vector, name)
+
+            print("\n6. Ending session")
+            end_session(access_token)
 
     end_time = time.time()
 
     print(f"\nTotal execution time: {end_time - start_time} seconds")
 
+if __name__ == "__main__":
 
-    
+    download_invoices()

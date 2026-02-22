@@ -1,9 +1,13 @@
+__pycache__/
+*.pyc
 .env
 .venv/
-Dane/*.xlsx
-Dane/*.json
+Data/*.xlsx
+Data/*.json
+Data/Scheme/*
 *.zip
 *.xml
 *.pdf
 Invoices/*
-
+Invoices_1/*
+Faktury/*

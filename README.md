@@ -1,5 +1,18 @@
 # KSeF-API
 
-Muszę dodać automatyczne tworzenie folderów jeśli jeszcze nie istnieją.
+Fix:
+Problem z:
+4. Downloading access tokens
+Response code: 400
+Traceback (most recent call last):
+  File "C:\Moje\KSeF_API\KSeF-API\script.py", line 337, in <module>
+    access_token, refresh_token = download_access_tokens(session_token)
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+TypeError: cannot unpack non-iterable NoneType object
 
-Edycja XML
+Filtrowanie faktur:
+Ściąganie z ostatnich 21 dni z filtrem
+
+Nowa struktura z uwzględnieniem administratorów
+
+
