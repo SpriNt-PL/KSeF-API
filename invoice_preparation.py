@@ -15,7 +15,7 @@ XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
 
 XSL_STYLE_FILE = './Data/Scheme/styl.xsl'
 
-MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 10
+MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 4
 
 def choose_only_new_files(zip_file_list, destination_file_list):
 
@@ -154,7 +154,7 @@ def save_xml_as_pdf(invoice_xml_directory_path, invoice_pdf_directory_path):
         print(f"Error occured: {e}")
 
 
-async def process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path):
+async def process_file(context, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path):
 
     async with semaphore:
         xml_path = os.path.join(invoice_xml_directory_path, file)
@@ -164,33 +164,37 @@ async def process_file(browser, file, transformer, parser, semaphore, invoice_xm
         result_html = transformer(xml_dom)
         html_string = etree.tostring(result_html, method='html', encoding='unicode')
 
-        page = await browser.new_page()
-        await page.set_content(html_string, wait_until="load")
+        page = await context.new_page()
 
-        pdf_bytes = await page.pdf(
-            format='A4',
-            print_background=True
-        )
+        try:
 
-        pdf_filename = file.replace('.xml', '.pdf')
+            await page.set_content(html_string, wait_until="domcontentloaded")
 
-        pdf_path_1 = os.path.join(invoice_pdf_directory_path, pdf_filename)
-        with open(pdf_path_1, 'wb') as f:
-            f.write(pdf_bytes)
+            pdf_bytes = await page.pdf(
+                format='A4',
+                print_background=True
+            )
 
-        pdf_path_2 = os.path.join(supervisor_directory_path, pdf_filename)
-        with open(pdf_path_2, 'wb') as f:
-            f.write(pdf_bytes) 
+            pdf_filename = file.replace('.xml', '.pdf')
 
-        # await page.pdf(
-        #     path = pdf_path,
-        #     format='A4',
-        #     print_background=True
-        # )
+            pdf_path_1 = os.path.join(invoice_pdf_directory_path, pdf_filename)
+            with open(pdf_path_1, 'wb') as f:
+                f.write(pdf_bytes)
 
-        await page.close()
+            pdf_path_2 = os.path.join(supervisor_directory_path, pdf_filename)
+            with open(pdf_path_2, 'wb') as f:
+                f.write(pdf_bytes)
 
-        print(f"Ready: {file}")
+            print(f"Ready: {file}")
+
+        except Exception as e:
+            print(f"Error in file {file}: {e}")
+
+    
+        finally:
+            await page.close()
+
+        
 
 
 # Asynchroniczna (szybsza wersja)
@@ -211,20 +215,48 @@ async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_director
 
     start_time = time.time()
     async with async_playwright() as p:
-        browser = await p.chromium.launch()
+        browser = await p.chromium.launch(
+            headless=True, 
+            args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--single-process"]
+        )
 
-        tasks = []
+        try:
+            async with await browser.new_context() as context:
+                
+                tasks = []
 
-        for file in files:
-            if file.endswith('.xml'):
-                tasks.append(
-                    process_file(browser, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path)
-                )
+                for file in files:
+                    if file.endswith('.xml'):
+                        tasks.append(
+                            process_file(context, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path)
+                        )
 
-        if tasks:
-            await asyncio.gather(*tasks)
-        
-        await browser.close()
+                print("Collecting all concurrent processes")
+                if tasks:
+                    await asyncio.gather(*tasks)
+
+                print("All tasks finished inside context.")
+
+        finally:
+            print("Force-closing the browser...")
+            try:
+                start_time = time.time()
+
+                await asyncio.wait_for(context.close(), timeout=10.0)
+                await asyncio.wait_for(browser.close(), timeout=10.0)
+
+                end_time = time.time()
+                elapsed_time = end_time - start_time
+                print(f"Browser closed in {elapsed_time:.2f}.")
+            except asyncio.TimeoutError:
+                print("Browser close timed out - proceeding anyway.")
+            
+            
+
+        # print("All files ready. Closing the browser")
+        # await context.close()
+        # await browser.close()
+        # print("Browser closed")
 
     end_time = time.time()
 

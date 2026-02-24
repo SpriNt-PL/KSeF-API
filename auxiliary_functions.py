@@ -10,14 +10,16 @@ def get_base_path():
     
 
 def prepare_playwright():
-    browsers_path = os.path.join(os.environ['LOCALAPPDATA'], 'ms-playwright')
-
+    browsers_path = os.path.join(os.path.expanduser("~"), "AppData", "Local", "ms-playwright")
     os.environ['PLAYWRIGHT_BROWSERS_PATH'] = browsers_path
 
     if not os.path.exists(browsers_path) or not os.listdir(browsers_path):
+        print("Downloading browser engine. It may take a while...")
         try:
-            subprocess.run([sys.executable, "-m", "playwright", "install", "chromium"], check=True)
+            subprocess.run([sys.executable, "install-browsers"], check=True)
             print("Browser engine installed successfully")
         except Exception as e:
             print(f"Installation error: {e}")
             sys.exit(1)
+    else:
+        print("Browser engine found. Starting the program.")

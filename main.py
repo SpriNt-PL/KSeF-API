@@ -1,3 +1,14 @@
+import os
+import sys
+import subprocess
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "install-browsers":
+        import playwright.__main__
+        sys.argv = ["playwright", "install", "chromium"]
+        playwright.__main__.main()
+        sys.exit(0)
+
 from directories_preparation import prepare_directories
 from ksef_api import download_invoices
 from invoice_preparation import prepare_invoices
@@ -7,6 +18,7 @@ if __name__ == "__main__":
 
     try:
         prepare_playwright()
+
         prepare_directories()
         download_invoices()
         prepare_invoices()
