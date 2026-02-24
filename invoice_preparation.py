@@ -107,53 +107,6 @@ def edit_xml_files(invoice_xml_directory_path, files):
     print("Files successfully edited")
 
 
-# Sychroniczna (pierwsza wersja)
-def save_xml_as_pdf(invoice_xml_directory_path, invoice_pdf_directory_path):
-    
-    try:
-        parser = etree.XMLParser(no_network=False, resolve_entities=True)
-        access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
-
-        with sync_playwright() as p:
-
-            browser = p.chromium.launch(args=['--allow-file-access-from-files'])
-            page = browser.new_page()
-
-            xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
-            transform = etree.XSLT(xsl_dom, access_control=access_control)
-
-            for file in os.listdir(invoice_xml_directory_path):
-                
-                if file.endswith('.xml'):
-                    print(f"Preparing PDF for {file}")
-
-                    xml_path = os.path.join(invoice_xml_directory_path, file)
-
-                    xml_dom = etree.parse(xml_path, parser=parser)
-
-                    result_html = transform(xml_dom)
-                    html_string = etree.tostring(result_html, method='html', encoding='unicode')
-
-                    print("HTML prepared")
-                    
-                    pdf_filename = file.replace('.xml', '.pdf')
-                    pdf_path = os.path.join(invoice_pdf_directory_path, pdf_filename)
-
-
-                    page.set_content(html_string, wait_until="networkidle")
-
-                    page.pdf(
-                        path = pdf_path,
-                        format='A4',
-                        print_background=True
-                    )
-
-            browser.close()
-
-    except Exception as e:
-        print(f"Error occured: {e}")
-
-
 async def process_file(context, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path):
 
     async with semaphore:
@@ -193,8 +146,6 @@ async def process_file(context, file, transformer, parser, semaphore, invoice_xm
     
         finally:
             await page.close()
-
-        
 
 
 # Asynchroniczna (szybsza wersja)
@@ -250,13 +201,6 @@ async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_director
                 print(f"Browser closed in {elapsed_time:.2f}.")
             except asyncio.TimeoutError:
                 print("Browser close timed out - proceeding anyway.")
-            
-            
-
-        # print("All files ready. Closing the browser")
-        # await context.close()
-        # await browser.close()
-        # print("Browser closed")
 
     end_time = time.time()
 
