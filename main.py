@@ -12,7 +12,7 @@ if __name__ == "__main__":
 from directories_preparation import prepare_directories
 from ksef_api import download_invoices
 from invoice_preparation import prepare_invoices
-from auxiliary_functions import prepare_playwright
+from auxiliary_functions import prepare_playwright, prepare_statistics, show_report
 
 if __name__ == "__main__":
 
@@ -20,8 +20,14 @@ if __name__ == "__main__":
         prepare_playwright()
 
         prepare_directories()
-        download_invoices()
+        failure_list, entities_processed = download_invoices()
         prepare_invoices()
+
+        entities_count = prepare_statistics()
+
+        show_report(failure_list, entities_count, entities_processed)
+
+
     except Exception as e:
         print(f"Error {e}")
     finally:
