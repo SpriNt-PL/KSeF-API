@@ -15,6 +15,9 @@ import constants
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
 
 EXPORT_DELAY_TIME = 5
+ACCESS_TOKENS_DELAY_TIME = 5
+
+MAX_ATTEMPTS = 5
 
 # Inicjacja uwierzytelniania
 def certifying_initiation():
@@ -142,6 +145,9 @@ def download_access_tokens(session_token):
         print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
 
         return response_data['accessToken']['token'], response_data['refreshToken']['token']
+    
+    else:
+        return None, None
 
 
 # Szyfrowanie eksportu
@@ -345,6 +351,17 @@ def download_invoices():
             print("\n4. Downloading access tokens")
 
             access_token, refresh_token = download_access_tokens(session_token)
+
+            attempts = 0
+            while (access_token == None or refresh_token == None) and attempts < MAX_ATTEMPTS:
+                attempts += 1
+                print(f"Unable to download access tokens. Retrying in {ACCESS_TOKENS_DELAY_TIME}. {MAX_ATTEMPTS - attempts} attempts left.")
+                time.sleep(ACCESS_TOKENS_DELAY_TIME)
+                access_token, refresh_token = download_access_tokens(session_token)
+
+            if access_token == None or refresh_token == None:
+                print("Unable to download access tokens. Skipping to the next entity")
+                continue
 
             print("\n5. Downloading invoices")
 
