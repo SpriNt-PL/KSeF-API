@@ -236,7 +236,10 @@ def export_status(reference_number, access_token):
                 print(response_data['package']['invoiceCount'])
                 print(response_data['package']['size'])
 
-                parts_data = response_data['package']['parts']
+                if response_data['package']['invoiceCount'] > 0:
+                    parts_data = response_data['package']['parts']
+                else:
+                    parts_data = None
 
                 return True, parts_data
             
@@ -380,10 +383,12 @@ def download_invoices():
             isExported, parts_data = export_status(package_reference_number, access_token)
 
             if isExported:
-                is_downloaded = download_package(parts_data, symmetric_key, initialization_vector, name)
+                if parts_data != None:
+                    is_downloaded = download_package(parts_data, symmetric_key, initialization_vector, name)
 
             if not is_downloaded:
-                failure_list.append(name)
+                if parts_data != None:
+                    failure_list.append(name)
 
             print("\n6. Ending session")
             end_session(access_token)

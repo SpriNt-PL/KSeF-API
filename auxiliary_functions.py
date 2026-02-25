@@ -2,6 +2,7 @@ import os
 import sys
 import subprocess
 import json
+from datetime import datetime, timedelta, timezone
 
 import constants
 
@@ -53,3 +54,29 @@ def show_report(failure_list, entities_count, entities_processed):
     else:
         print("All entities were processed")
 
+
+def save_report_to_file(failure_list, entities_count, entities_processed, elapsed_time):
+    
+    now = datetime.now()
+
+    with open("raport.txt", "a") as f:
+        line = f"Raport z dnia {now}"
+        f.write(line)
+    
+        line = f"\nWspolnoty dla ktorych faktury zostaly pobrane {entities_processed}/{entities_count}"
+        f.write(line)
+
+        if len(failure_list) > 0:
+            print("\nLista wspolnot, których faktury nie zostały pobrane:")
+        
+            for entity in failure_list:
+                line = f"\n{entity}"
+                f.write(line)
+
+        else:
+            line = "\nSukces! Faktury dla wszystkich wspolnot zostaly pobrane"
+
+        line = f"\nCalkowity czas pracy: {elapsed_time:.2f} sekund\n\n"
+        f.write(line)
+
+    print("Report has been prepared.")
