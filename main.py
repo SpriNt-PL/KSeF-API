@@ -31,8 +31,6 @@ if __name__ == "__main__":
 
         elapsed_time = end_time - start_time
 
-        #show_report(failure_list, entities_count, entities_processed)
-
         save_report_to_file(failure_list, entities_count, entities_processed, elapsed_time)
 
 
