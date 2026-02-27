@@ -59,7 +59,7 @@ def save_report_to_file(failure_list, entities_count, entities_processed, elapse
     
     now = datetime.now()
 
-    with open("raport.txt", "a") as f:
+    with open(constants.REPORT_PATH, "a") as f:
         line = f"Raport z dnia {now}"
         f.write(line)
     
@@ -80,3 +80,7 @@ def save_report_to_file(failure_list, entities_count, entities_processed, elapse
         f.write(line)
 
     print("Report has been prepared.")
+
+if __name__ == "__main__":
+    path = get_base_path()
+    print(path)

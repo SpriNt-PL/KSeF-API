@@ -13,8 +13,6 @@ import constants
 XML_FIRST_LINE = '<?xml version="1.0" encoding="UTF-8"?>'
 XML_SECOND_LINE = '<?xml-stylesheet type="text/xsl" href="Scheme/styl.xsl"?>'
 
-XSL_STYLE_FILE = './Data/Scheme/styl.xsl'
-
 MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES = 4
 
 def choose_only_new_files(zip_file_list, destination_file_list):
@@ -155,7 +153,7 @@ async def save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_director
     parser = etree.XMLParser(no_network=False, resolve_entities=True)
     access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
 
-    xsl_dom = etree.parse(XSL_STYLE_FILE, parser=parser)
+    xsl_dom = etree.parse(constants.XSL_STYLE_FILE, parser=parser)
     transformer = etree.XSLT(xsl_dom, access_control=access_control)
 
     semaphore = asyncio.Semaphore(MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES)
