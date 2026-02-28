@@ -192,8 +192,8 @@ def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, d
             "subjectType": "Subject2", 
             "dateRange": {
                 "dateType": "Invoicing",
-                "from": from_str,
-                #"from": "2026-02-01T00:00:00Z",
+                #"from": from_str,
+                "from": "2026-02-01T00:00:00Z",
                 #"to": "2026-02-15T23:59:59Z"
             }
         }

@@ -1,4 +1,5 @@
-BASE_PATH = 'C:/Moje/KSeF_API/KSeF-API/dist'
+BASE_PATH = 'W:/KSeF'
+#BASE_PATH = 'C:/Moje/KSeF_API/KSeF-API/dist'
 
 DATA_FILE_PATH = f'{BASE_PATH}/Data/data.json'
 XSL_STYLE_FILE = f'{BASE_PATH}/Data/Scheme/styl.xsl'
