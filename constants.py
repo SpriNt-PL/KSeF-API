@@ -1,6 +1,11 @@
-DATA_FILE_PATH = './Data/data.json'
+BASE_PATH = 'W:/KSeF'
+#BASE_PATH = 'C:/Moje/KSeF_API/KSeF-API/dist'
 
-INVOICE_DIRECTORY_PATH = './Invoices'
+DATA_FILE_PATH = f'{BASE_PATH}/Data/data.json'
+XSL_STYLE_FILE = f'{BASE_PATH}/Data/Scheme/styl.xsl'
+
+INVOICE_DIRECTORY_PATH = f'{BASE_PATH}/Invoices'
+#INVOICE_DIRECTORY_PATH = './Invoices'
 #INVOICE_DIRECTORY_PATH = 'Z:/Kuba/Invoices'
 
 ARCHIVE_DIRECTORY = 'Archive'
@@ -8,4 +13,7 @@ INVOICE_XML_DIRECTORY = 'Invoice_XML'
 INVOICE_PDF_DIRECTORY = 'Invoice_PDF'
 OLD_ARCHIVE_DIRECTORY = 'Old_Archive'
 
-OUTPUT_DIRECTORY_PATH = './Faktury'
+OUTPUT_DIRECTORY_PATH = f'{BASE_PATH}/Faktury'
+#OUTPUT_DIRECTORY_PATH = './Faktury'
+
+REPORT_PATH = f'{BASE_PATH}/raport.txt'

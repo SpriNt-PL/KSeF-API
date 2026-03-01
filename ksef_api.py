@@ -15,6 +15,9 @@ import constants
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
 
 EXPORT_DELAY_TIME = 5
+ACCESS_TOKENS_DELAY_TIME = 5
+
+MAX_ATTEMPTS = 5
 
 # Inicjacja uwierzytelniania
 def certifying_initiation():
@@ -142,6 +145,9 @@ def download_access_tokens(session_token):
         print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
 
         return response_data['accessToken']['token'], response_data['refreshToken']['token']
+    
+    else:
+        return None, None
 
 
 # Szyfrowanie eksportu
@@ -186,8 +192,8 @@ def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, d
             "subjectType": "Subject2", 
             "dateRange": {
                 "dateType": "Invoicing",
-                "from": from_str,
-                #"from": "2026-02-01T00:00:00Z",
+                #"from": from_str,
+                "from": "2026-02-01T00:00:00Z",
                 #"to": "2026-02-15T23:59:59Z"
             }
         }
@@ -230,7 +236,10 @@ def export_status(reference_number, access_token):
                 print(response_data['package']['invoiceCount'])
                 print(response_data['package']['size'])
 
-                parts_data = response_data['package']['parts']
+                if response_data['package']['invoiceCount'] > 0:
+                    parts_data = response_data['package']['parts']
+                else:
+                    parts_data = None
 
                 return True, parts_data
             
@@ -263,7 +272,7 @@ def download_package(parts_data, symmetric_key, initialization_vector, entity_na
         print(f"Response code: {response.status_code}")
 
         if response.status_code != 200:
-            return
+            return False
 
         encrypted_content = response.content
 
@@ -285,6 +294,8 @@ def download_package(parts_data, symmetric_key, initialization_vector, entity_na
                 f.write(decrypted_zip)
 
             print(f"Saved in {output_path}")
+
+            return True
 
         except Exception as e:
             print(f"Decipher error: {e}")
@@ -320,9 +331,16 @@ def download_invoices():
     with open(constants.DATA_FILE_PATH, 'r') as file:
         supervision_scopes = json.load(file)
 
+    failure_list = []
+    entities_processed = 0
+
     for scope in supervision_scopes:
 
         for entity in scope['entity']:
+            
+            # Statistics purpose only
+            is_downloaded = False
+            entities_processed += 1
 
             name = entity['name']
             nip = entity['nip']
@@ -346,6 +364,17 @@ def download_invoices():
 
             access_token, refresh_token = download_access_tokens(session_token)
 
+            attempts = 0
+            while (access_token == None or refresh_token == None) and attempts < MAX_ATTEMPTS:
+                print(f"Unable to download access tokens. Retrying in {ACCESS_TOKENS_DELAY_TIME}. {MAX_ATTEMPTS - attempts} attempts left.")
+                attempts += 1
+                time.sleep(ACCESS_TOKENS_DELAY_TIME)
+                access_token, refresh_token = download_access_tokens(session_token)
+
+            if access_token == None or refresh_token == None:
+                print("Unable to download access tokens. Skipping to the next entity")
+                continue
+
             print("\n5. Downloading invoices")
 
             encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
@@ -354,7 +383,12 @@ def download_invoices():
             isExported, parts_data = export_status(package_reference_number, access_token)
 
             if isExported:
-                download_package(parts_data, symmetric_key, initialization_vector, name)
+                if parts_data != None:
+                    is_downloaded = download_package(parts_data, symmetric_key, initialization_vector, name)
+
+            if not is_downloaded:
+                if parts_data != None:
+                    failure_list.append(name)
 
             print("\n6. Ending session")
             end_session(access_token)
@@ -362,6 +396,8 @@ def download_invoices():
     end_time = time.time()
 
     print(f"\nTotal execution time: {end_time - start_time} seconds")
+
+    return failure_list, entities_processed
 
 if __name__ == "__main__":
 

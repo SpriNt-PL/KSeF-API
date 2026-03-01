@@ -10,9 +10,8 @@ Traceback (most recent call last):
     ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 TypeError: cannot unpack non-iterable NoneType object
 
-Filtrowanie faktur:
-Ściąganie z ostatnich 21 dni z filtrem
+Muszę zabezpieczyć sytuacje błędów w api
+Tutaj powyżej api nie zwróciło kodu 200 więc nie uzyskałem tokenów
 
-Nowa struktura z uwzględnieniem administratorów
-
+Naprawić problem z playwright
 

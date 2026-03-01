@@ -11,3 +11,9 @@ Data/Scheme/*
 Invoices/*
 Invoices_1/*
 Faktury/*
+raport.txt
+
+# --- PyInstaller ---
+build/
+dist/
+*.spec
