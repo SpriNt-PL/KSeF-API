@@ -53,7 +53,7 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
 
     destination_archive_path = os.path.join(old_archive_directory_path, filename)
 
-    shutil.move(source_archive_path, destination_archive_path)
+    # shutil.move(source_archive_path, destination_archive_path)
 
     print(f"Archive moved to {old_archive_directory_path}")
 

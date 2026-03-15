@@ -12,6 +12,7 @@ Invoices/*
 Invoices_1/*
 Faktury/*
 raport.txt
+.idea
 
 # --- PyInstaller ---
 build/
