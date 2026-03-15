@@ -54,14 +54,14 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
 
     destination_archive_path = os.path.join(old_archive_directory_path, filename)
 
-    # shutil.move(source_archive_path, destination_archive_path)
+    shutil.move(source_archive_path, destination_archive_path)
 
     print(f"Archive moved to {old_archive_directory_path}")
 
     return True, new_files
 
 
-def edit_xml_files(invoice_xml_directory_path, files):
+def add_proper_xml_headers(invoice_xml_directory_path, files):
 
     print(f"Editing following files: {files}")
 
@@ -272,7 +272,7 @@ def prepare_invoices():
             if is_archive_present:
 
                 print("\n2. Editing the XML files so that it is possible to visualize them")
-                edit_xml_files(invoice_xml_directory_path, new_invoices)
+                add_proper_xml_headers(invoice_xml_directory_path, new_invoices)
                 add_ksef_number(invoice_xml_directory_path, new_invoices)
 
                 print("\n3. Save XML invoices as PDF")
