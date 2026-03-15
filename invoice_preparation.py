@@ -109,31 +109,35 @@ def edit_xml_files(invoice_xml_directory_path, files):
 def add_ksef_number(invoice_xml_directory_path, files):
     print(f"Editing following files: {files}")
 
-    if not files:
-        print("Folder is empty!")
-        return
-
     for file in files:
         if file.endswith('.xml') and file != 'wyroznik.xml':
-            ksef_number = os.path.splitext(file)[0]
+            numer_ksef = os.path.splitext(file)[0]
             filepath = os.path.join(invoice_xml_directory_path, file)
 
             with open(filepath, 'r', encoding='utf-8') as f:
                 content = f.read()
 
-            pattern = r"(</(?:[a-zA-Z0-9]+:)?KodFormularza>)"
+            pattern = r"(</(([a-zA-Z0-9]+):)?KodFormularza>)"
 
-            new_tag = f"<NumerKSeF>{ksef_number}</NumerKSeF>"
+            match = re.search(pattern, content)
 
-            if re.search(pattern, content):
-                new_content = re.sub(pattern, rf"\1{new_tag}", content)
+            if match:
+                full_closing_tag = match.group(1)
+                prefix_with_colon = match.group(2) if match.group(2) else ""
+
+                new_tag = f"<{prefix_with_colon}NumerKSeF>{numer_ksef}</{prefix_with_colon}NumerKSeF>"
+
+                separator = "\n    " if "\n" in content else ""
+
+                replacement = f"{full_closing_tag}{separator}{new_tag}"
+
+                new_content = content.replace(full_closing_tag, replacement, 1)
 
                 with open(filepath, 'w', encoding='utf-8') as f:
                     f.write(new_content)
-            else:
-                print(f"No tag <KodFormularza> found in file {file}")
 
-    print("Files successfully edited")
+            else:
+                print(f"Error KodFormularza not found {file}")
 
 
 
