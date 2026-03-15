@@ -3,6 +3,7 @@ import shutil
 import asyncio
 import time
 import json
+import re
 from zipfile import ZipFile
 from playwright.sync_api import sync_playwright
 from playwright.async_api import async_playwright
@@ -103,6 +104,37 @@ def edit_xml_files(invoice_xml_directory_path, files):
                 f.writelines(new_content)
 
     print("Files successfully edited")
+
+
+def add_ksef_number(invoice_xml_directory_path, files):
+    print(f"Editing following files: {files}")
+
+    if not files:
+        print("Folder is empty!")
+        return
+
+    for file in files:
+        if file.endswith('.xml') and file != 'wyroznik.xml':
+            ksef_number = os.path.splitext(file)[0]
+            filepath = os.path.join(invoice_xml_directory_path, file)
+
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            pattern = r"(</(?:[a-zA-Z0-9]+:)?KodFormularza>)"
+
+            new_tag = f"<NumerKSeF>{ksef_number}</NumerKSeF>"
+
+            if re.search(pattern, content):
+                new_content = re.sub(pattern, rf"\1{new_tag}", content)
+
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+            else:
+                print(f"No tag <KodFormularza> found in file {file}")
+
+    print("Files successfully edited")
+
 
 
 async def process_file(context, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path):
@@ -237,6 +269,7 @@ def prepare_invoices():
 
                 print("\n2. Editing the XML files so that it is possible to visualize them")
                 edit_xml_files(invoice_xml_directory_path, new_invoices)
+                add_ksef_number(invoice_xml_directory_path, new_invoices)
 
                 print("\n3. Save XML invoices as PDF")
                 asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path, new_invoices))
