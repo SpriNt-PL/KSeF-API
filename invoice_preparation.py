@@ -3,6 +3,7 @@ import shutil
 import asyncio
 import time
 import json
+import re
 from zipfile import ZipFile
 from playwright.sync_api import sync_playwright
 from playwright.async_api import async_playwright
@@ -53,14 +54,14 @@ def extract_files(archive_directory_path, old_archive_directory_path, invoice_xm
 
     destination_archive_path = os.path.join(old_archive_directory_path, filename)
 
-    # shutil.move(source_archive_path, destination_archive_path)
+    shutil.move(source_archive_path, destination_archive_path)
 
     print(f"Archive moved to {old_archive_directory_path}")
 
     return True, new_files
 
 
-def edit_xml_files(invoice_xml_directory_path, files):
+def add_proper_xml_headers(invoice_xml_directory_path, files):
 
     print(f"Editing following files: {files}")
 
@@ -103,6 +104,41 @@ def edit_xml_files(invoice_xml_directory_path, files):
                 f.writelines(new_content)
 
     print("Files successfully edited")
+
+
+def add_ksef_number(invoice_xml_directory_path, files):
+    print(f"Editing following files: {files}")
+
+    for file in files:
+        if file.endswith('.xml') and file != 'wyroznik.xml':
+            numer_ksef = os.path.splitext(file)[0]
+            filepath = os.path.join(invoice_xml_directory_path, file)
+
+            with open(filepath, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            pattern = r"(</(([a-zA-Z0-9]+):)?KodFormularza>)"
+
+            match = re.search(pattern, content)
+
+            if match:
+                full_closing_tag = match.group(1)
+                prefix_with_colon = match.group(2) if match.group(2) else ""
+
+                new_tag = f"<{prefix_with_colon}NumerKSeF>{numer_ksef}</{prefix_with_colon}NumerKSeF>"
+
+                separator = "\n    " if "\n" in content else ""
+
+                replacement = f"{full_closing_tag}{separator}{new_tag}"
+
+                new_content = content.replace(full_closing_tag, replacement, 1)
+
+                with open(filepath, 'w', encoding='utf-8') as f:
+                    f.write(new_content)
+
+            else:
+                print(f"Error KodFormularza not found {file}")
+
 
 
 async def process_file(context, file, transformer, parser, semaphore, invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path):
@@ -236,7 +272,8 @@ def prepare_invoices():
             if is_archive_present:
 
                 print("\n2. Editing the XML files so that it is possible to visualize them")
-                edit_xml_files(invoice_xml_directory_path, new_invoices)
+                add_proper_xml_headers(invoice_xml_directory_path, new_invoices)
+                add_ksef_number(invoice_xml_directory_path, new_invoices)
 
                 print("\n3. Save XML invoices as PDF")
                 asyncio.run(save_xml_as_pdf_async(invoice_xml_directory_path, invoice_pdf_directory_path, supervisor_directory_path, new_invoices))

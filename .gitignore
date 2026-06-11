@@ -2,11 +2,11 @@ __pycache__/
 *.pyc
 .env
 .venv/
+*.xml
 Data/*.xlsx
 Data/*.json
-Data/Scheme/*
+!Data/Scheme/wyroznik.xml
 *.zip
-*.xml
 *.pdf
 Invoices/*
 Invoices_1/*

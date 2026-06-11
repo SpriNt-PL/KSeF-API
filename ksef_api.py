@@ -192,8 +192,8 @@ def invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, d
             "subjectType": "Subject2", 
             "dateRange": {
                 "dateType": "Invoicing",
-                #"from": from_str,
-                "from": "2026-02-01T00:00:00Z",
+                "from": from_str,
+                # "from": "2026-04-01T00:00:00Z",
                 #"to": "2026-02-15T23:59:59Z"
             }
         }
@@ -325,7 +325,7 @@ def download_invoices():
     now = datetime.now(timezone.utc)
     print(f"Today is {now}")
 
-    date_from = (now - timedelta(days=21)).replace(hour=0, minute=0, second=0, microsecond=0)
+    date_from = (now - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
     print(f"Downloading invoices not older than {date_from}")
 
     with open(constants.DATA_FILE_PATH, 'r') as file:
