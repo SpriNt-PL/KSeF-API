@@ -2,7 +2,13 @@ import requests
 import time
 import json
 import textwrap
+import base64
 from datetime import datetime, timedelta, timezone
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography import x509
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.primitives import padding as aes_padding
 
 
 import constants
@@ -18,6 +24,12 @@ class KsefApiClient:
 
         self._challange = None
         self._timestamp = None
+        self._certificate_KsefTokenEncryption = None
+        self._certificate_SymmetricKeyEncryption = None
+        self._encrypted_token = None
+        self._session_token = None
+        self._reference_number = None
+
 
     def certifying_initiation(self):
         url = f"{PROD_URL}/auth/challenge"
@@ -35,6 +47,91 @@ class KsefApiClient:
         print(f"Recieved challenge: {self._challange}")
         print(f"Server timestamp: {self._timestamp}")
 
+
+    def download_certificates(self):
+        
+        url = f"{PROD_URL}/security/public-key-certificates"
+
+        response = requests.get(url)
+
+        response_data = response.json()
+        response_data_KsefTokenEncryption = response_data[0]
+        response_data_SymmetricKeyEncryption = response_data[1]
+
+        print(f"Certificate 'KsefTokenEncryption' valid until {response_data_KsefTokenEncryption['validTo']}")
+        print(f"Certificate 'SymmetricKeyEncryption' valid until {response_data_SymmetricKeyEncryption['validTo']}")
+
+        self._certificate_KsefTokenEncryption = response_data_KsefTokenEncryption['certificate']
+        self._certificate_SymmetricKeyEncryption = response_data_SymmetricKeyEncryption['certificate']
+
+    
+    def creating_encryptedToken(self):
+
+        plain_text = f"{self._token}|{self._timestamp}".encode('utf-8')
+
+        cert_bytes = base64.b64decode(self._certificate_KsefTokenEncryption)
+        cert_obj = x509.load_der_x509_certificate(cert_bytes)
+        public_key = cert_obj.public_key()
+
+        encrypted = public_key.encrypt(plain_text, padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        ))
+
+        self._encrypted_token = base64.b64encode(encrypted).decode('utf-8')
+
+    
+    def certifying_with_token(self):
+
+        url = f"{PROD_URL}/auth/ksef-token"
+
+        query_payload = {
+            "challenge": f"{self._challange}",
+            "contextIdentifier": {
+                "type": "Nip",
+                "value": f"{nip}"
+            },
+            "encryptedToken": f"{self._encrypted_token}"
+        }
+
+        response = requests.post(url, json=query_payload)
+        print(f"Response code: {response.status_code}")
+
+        if response.status_code == 202:
+            response_data = response.json()
+            print(f"Token ważny do: {response_data['authenticationToken']['validUntil']}")
+            self._session_token = response_data['authenticationToken']['token']
+            self._reference_number = response_data['referenceNumber']
+
+
+        else:
+            print(response_data)
+
+            return None
+        
+    
+    def certifying_status(self):
+
+        url = f"{PROD_URL}/auth/{self._reference_number}"
+
+        headers = {
+            "Authorization": f"Bearer {self._session_token}"
+        }
+
+        response = requests.get(url, headers=headers)
+
+        print(f"Response code: {response.status_code}")
+
+        if response.status_code == 200:
+            response_data = response.json()
+
+            print(response_data['authenticationMethod'])
+            print(response_data['status']['code'])
+            print(response_data['status']['description'])
+    
+
+
     def download_invoices(self):
 
         communicate = f"""
@@ -45,7 +142,16 @@ class KsefApiClient:
 
         print(textwrap.dedent(communicate))
 
+        print("1. Certifying initiation")
         self.certifying_initiation()
+
+        print("\n2. Downloading certificates")
+        self.download_certificates()
+
+        print(f"\n3. Certifying using token (NIP = {self._nip} oraz TOKEN = {self._token})")
+        self.creating_encryptedToken()
+        self.certifying_with_token()
+        self.certifying_status()
 
 
 

@@ -360,38 +360,38 @@ def download_invoices():
             session_token, reference_number = certifying_with_token(nip, challange, encrypted_token)
             certifying_status(session_token, reference_number)
 
-            print("\n4. Downloading access tokens")
+            # print("\n4. Downloading access tokens")
 
-            access_token, refresh_token = download_access_tokens(session_token)
+            # access_token, refresh_token = download_access_tokens(session_token)
 
-            attempts = 0
-            while (access_token == None or refresh_token == None) and attempts < MAX_ATTEMPTS:
-                print(f"Unable to download access tokens. Retrying in {ACCESS_TOKENS_DELAY_TIME}. {MAX_ATTEMPTS - attempts} attempts left.")
-                attempts += 1
-                time.sleep(ACCESS_TOKENS_DELAY_TIME)
-                access_token, refresh_token = download_access_tokens(session_token)
+            # attempts = 0
+            # while (access_token == None or refresh_token == None) and attempts < MAX_ATTEMPTS:
+            #     print(f"Unable to download access tokens. Retrying in {ACCESS_TOKENS_DELAY_TIME}. {MAX_ATTEMPTS - attempts} attempts left.")
+            #     attempts += 1
+            #     time.sleep(ACCESS_TOKENS_DELAY_TIME)
+            #     access_token, refresh_token = download_access_tokens(session_token)
 
-            if access_token == None or refresh_token == None:
-                print("Unable to download access tokens. Skipping to the next entity")
-                continue
+            # if access_token == None or refresh_token == None:
+            #     print("Unable to download access tokens. Skipping to the next entity")
+            #     continue
 
-            print("\n5. Downloading invoices")
+            # print("\n5. Downloading invoices")
 
-            encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
-            package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, date_from)
+            # encrypted_key_b64, initialization_vector_b64, symmetric_key, initialization_vector = encrypt_export(certificate_SymmetricKeyEncryption)
+            # package_reference_number = invoice_export(encrypted_key_b64, initialization_vector_b64, access_token, date_from)
 
-            isExported, parts_data = export_status(package_reference_number, access_token)
+            # isExported, parts_data = export_status(package_reference_number, access_token)
 
-            if isExported:
-                if parts_data != None:
-                    is_downloaded = download_package(parts_data, symmetric_key, initialization_vector, name)
+            # if isExported:
+            #     if parts_data != None:
+            #         is_downloaded = download_package(parts_data, symmetric_key, initialization_vector, name)
 
-            if not is_downloaded:
-                if parts_data != None:
-                    failure_list.append(name)
+            # if not is_downloaded:
+            #     if parts_data != None:
+            #         failure_list.append(name)
 
-            print("\n6. Ending session")
-            end_session(access_token)
+            # print("\n6. Ending session")
+            # end_session(access_token)
 
     end_time = time.time()
 
