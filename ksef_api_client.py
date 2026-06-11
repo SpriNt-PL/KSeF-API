@@ -1,6 +1,7 @@
 import requests
 import time
 import json
+import textwrap
 from datetime import datetime, timedelta, timezone
 
 
@@ -35,6 +36,15 @@ class KsefApiClient:
         print(f"Server timestamp: {self._timestamp}")
 
     def download_invoices(self):
+
+        communicate = f"""
+        =================================================================
+        Downloading invoice package for {self._name}
+        =================================================================
+        """
+
+        print(textwrap.dedent(communicate))
+
         self.certifying_initiation()
 
 
