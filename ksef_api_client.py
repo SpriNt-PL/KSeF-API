@@ -14,6 +14,7 @@ from cryptography.hazmat.primitives import padding as aes_padding
 import constants
 
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
+DAYS_BACK = 60
 
 class KsefApiClient:
     def __init__(self, name, nip, token, date_from):
@@ -22,7 +23,7 @@ class KsefApiClient:
         self._token = token
         self._date_from = date_from
 
-        self._challange = None
+        self._challenge = None
         self._timestamp = None
         self._certificate_KsefTokenEncryption = None
         self._certificate_SymmetricKeyEncryption = None
@@ -41,10 +42,10 @@ class KsefApiClient:
 
         challenge_data = response.json()
 
-        self._challange = challenge_data['challenge']
+        self._challenge = challenge_data['challenge']
         self._timestamp = challenge_data['timestampMs']
 
-        print(f"Recieved challenge: {self._challange}")
+        print(f"Recieved challenge: {self._challenge}")
         print(f"Server timestamp: {self._timestamp}")
 
 
@@ -87,10 +88,10 @@ class KsefApiClient:
         url = f"{PROD_URL}/auth/ksef-token"
 
         query_payload = {
-            "challenge": f"{self._challange}",
+            "challenge": f"{self._challenge}",
             "contextIdentifier": {
                 "type": "Nip",
-                "value": f"{nip}"
+                "value": f"{self._nip}"
             },
             "encryptedToken": f"{self._encrypted_token}"
         }
@@ -103,12 +104,11 @@ class KsefApiClient:
             print(f"Token ważny do: {response_data['authenticationToken']['validUntil']}")
             self._session_token = response_data['authenticationToken']['token']
             self._reference_number = response_data['referenceNumber']
-
+            return True
 
         else:
             print(response_data)
-
-            return None
+            return False
         
     
     def certifying_status(self):
@@ -150,7 +150,10 @@ class KsefApiClient:
 
         print(f"\n3. Certifying using token (NIP = {self._nip} oraz TOKEN = {self._token})")
         self.creating_encryptedToken()
-        self.certifying_with_token()
+        status = self.certifying_with_token()
+        if not status:
+            return False 
+
         self.certifying_status()
 
 
@@ -163,7 +166,7 @@ if __name__ == '__main__':
     now = datetime.now(timezone.utc)
     print(f"Today is {now}")
 
-    date_from = (now - timedelta(days=60)).replace(hour=0, minute=0, second=0, microsecond=0)
+    date_from = (now - timedelta(days=DAYS_BACK)).replace(hour=0, minute=0, second=0, microsecond=0)
     print(f"Downloading invoices not older than {date_from}")
 
     with open(constants.DATA_FILE_PATH, 'r') as file:
