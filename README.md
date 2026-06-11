@@ -40,3 +40,6 @@ XSLT file: http://crd.gov.pl/wzor/2026/02/17/14164/styl.xsl
 6. Set proper base path in constants.py
 
 7. You are ready to go!
+
+To be fixed:
+Possibility that invoices from a single entity will be splitted into several archives.

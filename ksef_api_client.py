@@ -3,6 +3,7 @@ import time
 import json
 import textwrap
 import base64
+import os
 from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
@@ -23,7 +24,7 @@ ACCESS_TOKENS_DELAY_TIME = 5
 MAX_ATTEMPTS = 5
 
 class KsefApiClient:
-    def __init__(self, name, nip, token, date_from):
+    def __init__(self, name, nip, token, date_from, failure_list):
         self._name = name
         self._nip = nip
         self._token = token
@@ -38,6 +39,14 @@ class KsefApiClient:
         self._reference_number = None
         self._access_token = None
         self._refresh_token = None
+        self._encrypted_key_b64 = None 
+        self._initialization_vector_b64 = None
+        self._symmetric_key = None
+        self._initialization_vector = None
+        self._package_reference_number = None
+        self._parts_data = None
+
+        self._failure_list = failure_list
 
 
     def certifying_initiation(self):
@@ -160,6 +169,149 @@ class KsefApiClient:
             self._access_token = response_data['accessToken']['token']
             self._refresh_token = response_data['refreshToken']['token']
 
+    
+    def encrypt_export(self):
+        self._symmetric_key = os.urandom(32)
+
+        self._initialization_vector = os.urandom(16)
+
+        cert_bytes = base64.b64decode(self._certificate_SymmetricKeyEncryption)
+        cert_obj = x509.load_der_x509_certificate(cert_bytes)
+        public_key = cert_obj.public_key()
+
+        encrypted_key = public_key.encrypt(self._symmetric_key, padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None
+        ))
+
+        self._encrypted_key_b64 = base64.b64encode(encrypted_key).decode('utf-8')
+        self._initialization_vector_b64 = base64.b64encode(self._initialization_vector).decode('utf-8')
+
+
+    def invoice_export(self):
+
+        url = f"{PROD_URL}/invoices/exports"
+
+        from_str = self._date_from.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        headers = {
+            "Authorization": f"Bearer {self._access_token}"
+        }
+
+        query_payload = {
+            "encryption": {
+                "encryptedSymmetricKey": f"{self._encrypted_key_b64}",
+                "initializationVector": f"{self._initialization_vector_b64}"
+            },
+            "filters": {
+                "subjectType": "Subject2", 
+                "dateRange": {
+                    "dateType": "Invoicing",
+                    "from": from_str,
+                    # "from": "2026-04-01T00:00:00Z",
+                    # "to": "2026-02-15T23:59:59Z"
+                }
+            }
+        }
+
+        response = requests.post(url, headers=headers, json=query_payload)
+
+        print(f"Response code: {response.status_code}")
+
+        if response.status_code == 201:
+            response_data = response.json()
+
+            self._package_reference_number = response_data['referenceNumber']
+
+        
+    def export_status(self):
+
+        url = f"{PROD_URL}/invoices/exports/{self._package_reference_number}"
+
+        headers = {
+            "Authorization": f"Bearer {self._access_token}"
+        }
+
+        while True:
+
+            response = requests.get(url, headers=headers)
+
+            print(f"Response code: {response.status_code}")
+
+            if response.status_code == 200:
+                response_data = response.json()
+
+                export_status = response_data['status']['code']
+
+                if export_status == 200:
+                    print("Package ready to be downloaded.")
+                    print(response_data['package']['invoiceCount'])
+                    print(response_data['package']['size'])
+
+                    if response_data['package']['invoiceCount'] > 0:
+                        self._parts_data = response_data['package']['parts']
+                    
+                    return True
+                    
+                
+                elif export_status == 100:
+                    print(f"Package is still being prepared. Retrying in {EXPORT_DELAY_TIME} seconds.")
+                    time.sleep(EXPORT_DELAY_TIME)
+                    continue
+
+                else:
+                    print("Export error")
+                    return False
+
+            else:
+                "Response error"
+                return False
+            
+    
+    def download_package(self):
+
+        for part in self._parts_data:
+
+            url = part['url']
+            part_name = part['partName']
+
+            print(part_name)
+
+            response = requests.get(url)
+
+            print(f"Response code: {response.status_code}")
+
+            if response.status_code != 200:
+                return False
+
+            encrypted_content = response.content
+
+            cipher = Cipher(algorithms.AES(self._symmetric_key), modes.CBC(self._initialization_vector)) 
+            decryptor = cipher.decryptor()
+
+            padded_data = decryptor.update(encrypted_content) + decryptor.finalize()
+
+            unpadder = aes_padding.PKCS7(128).unpadder()
+
+            try:
+                decrypted_zip = unpadder.update(padded_data) + unpadder.finalize()
+
+                part_name = part_name[:-8]
+
+                output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{self._name}/{constants.ARCHIVE_DIRECTORY}/{part_name}.zip"
+
+                with open(output_path, "wb") as f:
+                    f.write(decrypted_zip)
+
+                print(f"Saved in {output_path}")
+
+            except Exception as e:
+                print(f"Decipher error: {e}")
+                return False
+
+            return True # Remember about this
+
 
     def download_invoices(self):
 
@@ -199,6 +351,20 @@ class KsefApiClient:
         if self._access_token is None or self._refresh_token is None:
                 print("Unable to download access tokens. Skipping to the next entity")
                 return False
+        
+        print("\n5. Downloading invoices")
+        self.encrypt_export()
+        self.invoice_export()
+        is_exported = self.export_status()
+
+        if is_exported:
+            if self._parts_data != None:
+                is_downloaded = self.download_package()
+
+        if not is_downloaded:
+            if self._parts_data != None:
+                self._failure_list.append(name)
+                
 
 
 if __name__ == '__main__':
@@ -215,6 +381,9 @@ if __name__ == '__main__':
     with open(constants.DATA_FILE_PATH, 'r') as file:
         supervision_scopes = json.load(file)
 
+    failure_list = []
+    entities_processed = 0
+
     for scope in supervision_scopes:
 
         for entity in scope['entity']:
@@ -222,7 +391,7 @@ if __name__ == '__main__':
             nip = entity['nip']
             token = entity['token']
 
-            ksef_client = KsefApiClient(name, nip, token, date_from)
+            ksef_client = KsefApiClient(name, nip, token, date_from, failure_list)
 
             ksef_client.download_invoices()
 
