@@ -14,7 +14,13 @@ from cryptography.hazmat.primitives import padding as aes_padding
 import constants
 
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
+
 DAYS_BACK = 60
+
+EXPORT_DELAY_TIME = 5
+ACCESS_TOKENS_DELAY_TIME = 5
+
+MAX_ATTEMPTS = 5
 
 class KsefApiClient:
     def __init__(self, name, nip, token, date_from):
@@ -30,6 +36,8 @@ class KsefApiClient:
         self._encrypted_token = None
         self._session_token = None
         self._reference_number = None
+        self._access_token = None
+        self._refresh_token = None
 
 
     def certifying_initiation(self):
@@ -131,6 +139,27 @@ class KsefApiClient:
             print(response_data['status']['description'])
     
 
+    def download_access_tokens(self):
+
+        url = f"{PROD_URL}/auth/token/redeem"
+
+        headers = {
+            "Authorization": f"Bearer {self._session_token}"
+        }
+
+        response = requests.post(url, headers=headers)
+
+        print(f"Response code: {response.status_code}")
+
+        if response.status_code == 200:
+            response_data = response.json()
+
+            print(f"Access token valid until: {response_data['accessToken']['validUntil']}")
+            print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
+
+            self._access_token = response_data['accessToken']['token']
+            self._refresh_token = response_data['refreshToken']['token']
+
 
     def download_invoices(self):
 
@@ -156,6 +185,20 @@ class KsefApiClient:
 
         self.certifying_status()
 
+        print("\n4. Downloading access tokens")
+        self.download_access_tokens()
+
+        # Ensuring that access tokens will be downloaded (allowed attempts)
+        attempts = 0
+        while (self._access_token is None or self._refresh_token is None) and attempts < MAX_ATTEMPTS:
+            print(f"Unable to download access tokens. Retrying in {ACCESS_TOKENS_DELAY_TIME}. {MAX_ATTEMPTS - attempts} attempts left.")
+            attempts += 1
+            time.sleep(ACCESS_TOKENS_DELAY_TIME)
+            self.download_access_tokens()
+
+        if self._access_token is None or self._refresh_token is None:
+                print("Unable to download access tokens. Skipping to the next entity")
+                return False
 
 
 if __name__ == '__main__':
