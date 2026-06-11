@@ -390,8 +390,8 @@ def download_invoices():
                 if parts_data != None:
                     failure_list.append(name)
 
-            # print("\n6. Ending session")
-            # end_session(access_token)
+            print("\n6. Ending session")
+            end_session(access_token)
 
     end_time = time.time()
 
