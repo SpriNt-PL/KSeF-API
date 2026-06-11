@@ -311,6 +311,22 @@ class KsefApiClient:
                 return False
 
             return True # Remember about this
+        
+
+    def end_session(self):
+
+        url = f"{PROD_URL}/auth/sessions/current"
+
+        headers = {
+            "Authorization": f"Bearer {self._access_token}"
+        }
+
+        response = requests.delete(url, headers=headers)
+
+        print(f"Response code: {response.status_code}")
+
+        if response.status_code == 204:
+            print("Session ended successfully")
 
 
     def download_invoices(self):
@@ -364,7 +380,9 @@ class KsefApiClient:
         if not is_downloaded:
             if self._parts_data != None:
                 self._failure_list.append(name)
-                
+        
+        print("\n6. Ending session")
+        self.end_session()
 
 
 if __name__ == '__main__':
