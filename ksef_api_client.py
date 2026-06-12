@@ -14,6 +14,9 @@ from cryptography.hazmat.primitives import padding as aes_padding
 
 import constants
 
+# Client based on official KSeF API PR instruction
+# https://api.ksef.mf.gov.pl/docs/v2/index.html 
+
 PROD_URL = "https://api.ksef.mf.gov.pl/v2"
 
 DAYS_BACK = 60
@@ -25,20 +28,30 @@ MAX_ATTEMPTS = 5
 
 class KsefApiClient:
     def __init__(self, name, nip, token, date_from):
+        # Entity session details
         self._name = name
         self._nip = nip
         self._token = token
         self._date_from = date_from
 
+        # Introduced on "1. Certifying initialization" step
         self._challenge = None
         self._timestamp = None
+
+        # Introduced on "2. Download certificates" step
         self._certificate_KsefTokenEncryption = None
         self._certificate_SymmetricKeyEncryption = None
+
+        # Introduced on "3. Certifying using token" step
         self._encrypted_token = None
         self._session_token = None
         self._reference_number = None
+
+        # Introduced on "4. Downloading access tokens" step
         self._access_token = None
         self._refresh_token = None
+
+        # Introduced on "5. Downloading invoices" step
         self._encrypted_key_b64 = None 
         self._initialization_vector_b64 = None
         self._symmetric_key = None
@@ -46,38 +59,42 @@ class KsefApiClient:
         self._package_reference_number = None
         self._parts_data = None
 
+    # Step name in instrucion: "Inicjalizacja uwierzytelnienia"
+    # Generates unique challange required in the next certifying step
     def certifying_initiation(self):
         url = f"{PROD_URL}/auth/challenge"
 
+        # Sending the request
         response = requests.post(url)
         response.raise_for_status()
 
         print(f"Response code: {response.status_code}")
 
+        # Reading content of the response
         challenge_data = response.json()
-
         self._challenge = challenge_data['challenge']
         self._timestamp = challenge_data['timestampMs']
 
         print(f"Recieved challenge: {self._challenge}")
         print(f"Server timestamp: {self._timestamp}")
 
-
+    # Step name in instrucion: "Pobranie certyfikatów"
+    # Returns informations about public keys required for encrypting data before sending to KSeF system 
     def download_certificates(self):
-        
         url = f"{PROD_URL}/security/public-key-certificates"
 
+        # Sending the request
         response = requests.get(url)
 
+        # Reading content of the response
         response_data = response.json()
         response_data_KsefTokenEncryption = response_data[0]
         response_data_SymmetricKeyEncryption = response_data[1]
+        self._certificate_KsefTokenEncryption = response_data_KsefTokenEncryption['certificate']
+        self._certificate_SymmetricKeyEncryption = response_data_SymmetricKeyEncryption['certificate']
 
         print(f"Certificate 'KsefTokenEncryption' valid until {response_data_KsefTokenEncryption['validTo']}")
         print(f"Certificate 'SymmetricKeyEncryption' valid until {response_data_SymmetricKeyEncryption['validTo']}")
-
-        self._certificate_KsefTokenEncryption = response_data_KsefTokenEncryption['certificate']
-        self._certificate_SymmetricKeyEncryption = response_data_SymmetricKeyEncryption['certificate']
 
     
     def creating_encryptedToken(self):
@@ -96,11 +113,12 @@ class KsefApiClient:
 
         self._encrypted_token = base64.b64encode(encrypted).decode('utf-8')
 
-    
+    # Step name in instrucion: "Uwierzytelnienie z wykorzystaniem tokena KSeF"
+    # Starts certifying using previously generated KSeF token
     def certifying_with_token(self):
-
         url = f"{PROD_URL}/auth/ksef-token"
 
+        # Preparing the request's payload
         query_payload = {
             "challenge": f"{self._challenge}",
             "contextIdentifier": {
@@ -110,9 +128,11 @@ class KsefApiClient:
             "encryptedToken": f"{self._encrypted_token}"
         }
 
+        # Sending the request
         response = requests.post(url, json=query_payload)
         print(f"Response code: {response.status_code}")
 
+        # Reading content of the response if status code is 202 (positive)
         if response.status_code == 202:
             response_data = response.json()
             print(f"Token ważny do: {response_data['authenticationToken']['validUntil']}")
@@ -124,19 +144,22 @@ class KsefApiClient:
             print(response_data)
             return False
         
-    
+    # Step name in instrucion: "Pobranie statusu uwierzytelniania"
+    # Checks current certifying status
     def certifying_status(self):
-
         url = f"{PROD_URL}/auth/{self._reference_number}"
 
+        # Preparing header needed for the request
         headers = {
             "Authorization": f"Bearer {self._session_token}"
         }
 
+        # Sending the request
         response = requests.get(url, headers=headers)
 
         print(f"Response code: {response.status_code}")
 
+        # Reading content of the response if status code is 200 (positive)
         if response.status_code == 200:
             response_data = response.json()
 
