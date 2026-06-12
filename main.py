@@ -60,14 +60,14 @@ if __name__ == "__main__":
                 nip = entity['nip']
                 token = entity['token']
 
-                ksef_client = KsefApiClient(name, nip, token, date_from, failure_list)
+                ksef_client = KsefApiClient(name, nip, token, date_from)
 
-                ksef_client.download_invoices()
+                # If KSeF Client did not succeed then add name of currently process entity to the failure list
+                success = ksef_client.download_invoices()
+                if not success:
+                    failure_list.append(name)
 
                 entities_processed += 1
-
-
-        # failure_list, entities_processed = download_invoices()
 
         # ---TO BE CHANGED--- After downloading packages (archives) with invoices in XML convert them into PDFs
         prepare_invoices()

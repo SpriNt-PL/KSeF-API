@@ -24,7 +24,7 @@ ACCESS_TOKENS_DELAY_TIME = 5
 MAX_ATTEMPTS = 5
 
 class KsefApiClient:
-    def __init__(self, name, nip, token, date_from, failure_list):
+    def __init__(self, name, nip, token, date_from):
         self._name = name
         self._nip = nip
         self._token = token
@@ -45,9 +45,6 @@ class KsefApiClient:
         self._initialization_vector = None
         self._package_reference_number = None
         self._parts_data = None
-
-        self._failure_list = failure_list
-
 
     def certifying_initiation(self):
         url = f"{PROD_URL}/auth/challenge"
@@ -368,6 +365,7 @@ class KsefApiClient:
             time.sleep(ACCESS_TOKENS_DELAY_TIME)
             self.download_access_tokens()
 
+        # End the process is at least one of the tokens are missing
         if self._access_token is None or self._refresh_token is None:
                 print("Unable to download access tokens. Skipping to the next entity")
                 return False
@@ -377,16 +375,14 @@ class KsefApiClient:
         self.invoice_export()
         is_exported = self.export_status()
 
-        if is_exported:
-            if self._parts_data != None:
-                is_downloaded = self.download_package()
-
-        if not is_downloaded:
-            if self._parts_data != None:
-                self._failure_list.append(name)
+        is_downloaded = False
+        if is_exported and self._parts_data is not None:
+            is_downloaded = self.download_package()
         
         print("\n6. Ending session")
         self.end_session()
+
+        return is_downloaded
 
 
 if __name__ == '__main__':
