@@ -310,7 +310,7 @@ class KsefApiClient:
                 print(f"Decipher error: {e}")
                 return False
 
-            return True # Remember about this
+        return True # Remember about this
         
 
     def end_session(self):
@@ -394,7 +394,7 @@ if __name__ == '__main__':
 
     print("Program started.\n")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now()
     print(f"Today is {now}")
 
     date_from = (now - timedelta(days=DAYS_BACK)).replace(hour=0, minute=0, second=0, microsecond=0)
