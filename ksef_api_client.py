@@ -328,6 +328,10 @@ class KsefApiClient:
         if response.status_code == 204:
             print("Session ended successfully")
 
+    
+    def get_failure_list(self):
+        return self._failure_list
+
 
     def download_invoices(self):
 
