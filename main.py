@@ -16,7 +16,6 @@ if __name__ == "__main__":
         sys.exit(0)
 
 from directories_preparation import prepare_directories
-from ksef_api import download_invoices
 from invoice_preparation import prepare_invoices
 from auxiliary_functions import prepare_playwright, prepare_statistics, show_report, save_report_to_file
 
