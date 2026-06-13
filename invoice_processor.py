@@ -38,7 +38,7 @@ class InvoiceProcessor:
 
         if not files:
             print("Folder is empty!")
-            return False, None
+            return False
 
         filename = files[0]
 
@@ -69,6 +69,8 @@ class InvoiceProcessor:
 
         self._new_invoices = new_files
 
+        return True
+
     
     def prepare_invoices(self):
         communicate = f"""
@@ -80,7 +82,10 @@ class InvoiceProcessor:
         print(textwrap.dedent(communicate))
 
         print("1. Unzipping the archive with invoices")
-        self.extract_files()
+        is_content = self.extract_files()
+
+        if not is_content:
+            return False
 
 
 if __name__ == '__main__':
