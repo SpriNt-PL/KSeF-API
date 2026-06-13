@@ -463,7 +463,7 @@ if __name__ == '__main__':
             nip = entity['nip']
             token = entity['token']
 
-            ksef_client = KsefApiClient(name, nip, token, date_from, failure_list)
+            ksef_client = KsefApiClient(name, nip, token, date_from)
 
             ksef_client.download_invoices()
 
