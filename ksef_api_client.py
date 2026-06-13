@@ -167,27 +167,31 @@ class KsefApiClient:
             print(response_data['status']['code'])
             print(response_data['status']['description'])
     
-
+    # Step name in instrucion: "Pobranie tokenów dostępowych"
+    # Downloads access token and refresh token generated after successful certifying process
     def download_access_tokens(self):
 
         url = f"{PROD_URL}/auth/token/redeem"
 
+        # Preparing header needed for the request
         headers = {
             "Authorization": f"Bearer {self._session_token}"
         }
 
+        # Sending the request
         response = requests.post(url, headers=headers)
 
         print(f"Response code: {response.status_code}")
 
+        # Reading content of the response if status code is 200 (positive)
         if response.status_code == 200:
             response_data = response.json()
 
-            print(f"Access token valid until: {response_data['accessToken']['validUntil']}")
-            print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
-
             self._access_token = response_data['accessToken']['token']
             self._refresh_token = response_data['refreshToken']['token']
+
+            print(f"Access token valid until: {response_data['accessToken']['validUntil']}")
+            print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
 
     
     def encrypt_export(self):
@@ -208,17 +212,20 @@ class KsefApiClient:
         self._encrypted_key_b64 = base64.b64encode(encrypted_key).decode('utf-8')
         self._initialization_vector_b64 = base64.b64encode(self._initialization_vector).decode('utf-8')
 
-
+    # Step name in instrucion: "Eksport paczki faktur"
+    # Starts process of finding invoices in KSeF System based on the provided filters and initiates the preparation of package containing them
     def invoice_export(self):
-
         url = f"{PROD_URL}/invoices/exports"
 
-        from_str = self._date_from.strftime('%Y-%m-%dT%H:%M:%SZ')
-
+        # Preparing header needed for the request
         headers = {
             "Authorization": f"Bearer {self._access_token}"
         }
 
+        # Date paresed for the purpose of the filtering by date
+        from_str = self._date_from.strftime('%Y-%m-%dT%H:%M:%SZ')
+
+        # Preparing the request's payload containing filters
         query_payload = {
             "encryption": {
                 "encryptedSymmetricKey": f"{self._encrypted_key_b64}",
@@ -235,26 +242,31 @@ class KsefApiClient:
             }
         }
 
+        # Sending the request
         response = requests.post(url, headers=headers, json=query_payload)
 
         print(f"Response code: {response.status_code}")
 
+        # Reading content of the response if status code is 201 (positive)
         if response.status_code == 201:
             response_data = response.json()
 
             self._package_reference_number = response_data['referenceNumber']
 
-        
+    # Step name in instrucion: "Pobranie statusu eksportu paczki faktur"
+    # Returns information wheather the package was prepared to be downloaded   
     def export_status(self):
 
         url = f"{PROD_URL}/invoices/exports/{self._package_reference_number}"
 
+        # Preparing header needed for the request
         headers = {
             "Authorization": f"Bearer {self._access_token}"
         }
 
         while True:
-
+            
+            # Sending the request
             response = requests.get(url, headers=headers)
 
             print(f"Response code: {response.status_code}")
@@ -264,6 +276,7 @@ class KsefApiClient:
 
                 export_status = response_data['status']['code']
 
+                # Reading content of the response if status code is 200 (positive)
                 if export_status == 200:
                     print("Package ready to be downloaded.")
                     print(response_data['package']['invoiceCount'])
@@ -274,23 +287,26 @@ class KsefApiClient:
                     
                     return True
                     
-                
+                # Wait if package is still being prepared
                 elif export_status == 100:
                     print(f"Package is still being prepared. Retrying in {EXPORT_DELAY_TIME} seconds.")
                     time.sleep(EXPORT_DELAY_TIME)
                     continue
-
+                
+                # Any other code means that export process failed
                 else:
                     print("Export error")
                     return False
 
+            # Abort is the response failed.
             else:
                 "Response error"
                 return False
             
-    
+    # Downloads all packages for the entity
     def download_package(self):
-
+        
+        # Iterate over each package
         for part in self._parts_data:
 
             url = part['url']
@@ -298,6 +314,7 @@ class KsefApiClient:
 
             print(part_name)
 
+            # Sending the request
             response = requests.get(url)
 
             print(f"Response code: {response.status_code}")
@@ -305,8 +322,10 @@ class KsefApiClient:
             if response.status_code != 200:
                 return False
 
+            # Reading the encrypted package content
             encrypted_content = response.content
 
+            # Decrypting the package content
             cipher = Cipher(algorithms.AES(self._symmetric_key), modes.CBC(self._initialization_vector)) 
             decryptor = cipher.decryptor()
 
@@ -319,6 +338,7 @@ class KsefApiClient:
 
                 part_name = part_name[:-8]
 
+                # Saving the decrypted archive in the proper Archive directory
                 output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{self._name}/{constants.ARCHIVE_DIRECTORY}/{part_name}.zip"
 
                 with open(output_path, "wb") as f:
@@ -332,7 +352,8 @@ class KsefApiClient:
 
         return True # Remember about this
         
-
+    # Step name in instrucion: "Unieważnienie aktualnej sesji uwierzytelnienia"
+    # Ends current session
     def end_session(self):
 
         url = f"{PROD_URL}/auth/sessions/current"
@@ -349,10 +370,7 @@ class KsefApiClient:
             print("Session ended successfully")
 
     
-    def get_failure_list(self):
-        return self._failure_list
-
-
+    # Invoice downloading process orchestrator
     def download_invoices(self):
 
         communicate = f"""
@@ -372,6 +390,7 @@ class KsefApiClient:
         print(f"\n3. Certifying using token (NIP = {self._nip} oraz TOKEN = {self._token})")
         self.creating_encryptedToken()
         status = self.certifying_with_token()
+        # End the process if the status above is False
         if not status:
             return False 
 
@@ -397,7 +416,7 @@ class KsefApiClient:
         self.encrypt_export()
         self.invoice_export()
         is_exported = self.export_status()
-
+        
         is_downloaded = False
         if is_exported and self._parts_data is not None:
             is_downloaded = self.download_package()
@@ -408,6 +427,7 @@ class KsefApiClient:
         return is_downloaded
 
 
+# For the testing purpose
 if __name__ == '__main__':
     start_time = time.time()
 
