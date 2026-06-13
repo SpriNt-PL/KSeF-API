@@ -96,21 +96,24 @@ class KsefApiClient:
         print(f"Certificate 'KsefTokenEncryption' valid until {response_data_KsefTokenEncryption['validTo']}")
         print(f"Certificate 'SymmetricKeyEncryption' valid until {response_data_SymmetricKeyEncryption['validTo']}")
 
-    
+    # Generates the EncryptedToen required for the KSeF authentication
     def creating_encryptedToken(self):
-
+        # Prepare plain data consisting of token and timestamp
         plain_text = f"{self._token}|{self._timestamp}".encode('utf-8')
-
+        
+        # Decode the Base64 KSeF certificate and extract the RSA public key
         cert_bytes = base64.b64decode(self._certificate_KsefTokenEncryption)
         cert_obj = x509.load_der_x509_certificate(cert_bytes)
         public_key = cert_obj.public_key()
 
+        # Encrypt the plaintext using RSA algorithm with OAEP padding and SHA-256
         encrypted = public_key.encrypt(plain_text, padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None
         ))
 
+        # Encode the encrypted payload to Base64 standard
         self._encrypted_token = base64.b64encode(encrypted).decode('utf-8')
 
     # Step name in instrucion: "Uwierzytelnienie z wykorzystaniem tokena KSeF"
@@ -193,22 +196,28 @@ class KsefApiClient:
             print(f"Access token valid until: {response_data['accessToken']['validUntil']}")
             print(f"Refresh token valid until: {response_data['refreshToken']['validUntil']}")
 
-    
+    # Prepares cryptographic keys for securing the exported invoice package
     def encrypt_export(self):
+        # Generate a random AES symmetric key (32 = number of bytes)
+        # This key will be used LATER to decrypt the downloaded ZIP archive
         self._symmetric_key = os.urandom(32)
 
+        # Generate an Initialization Vector (IV) for the AES algorithm (16 = number of bytes)
         self._initialization_vector = os.urandom(16)
 
+        # Extract the RSA public key from the 'SymmetricKeyEncryption' certificate
         cert_bytes = base64.b64decode(self._certificate_SymmetricKeyEncryption)
         cert_obj = x509.load_der_x509_certificate(cert_bytes)
         public_key = cert_obj.public_key()
 
+        # Encrypt generated AES symmetric key using the KSeF RSA public key
         encrypted_key = public_key.encrypt(self._symmetric_key, padding.OAEP(
             mgf=padding.MGF1(algorithm=hashes.SHA256()),
             algorithm=hashes.SHA256(),
             label=None
         ))
 
+        # Encode the encrypted AES key and the plaintext IV to Base64
         self._encrypted_key_b64 = base64.b64encode(encrypted_key).decode('utf-8')
         self._initialization_vector_b64 = base64.b64encode(self._initialization_vector).decode('utf-8')
 
@@ -355,17 +364,19 @@ class KsefApiClient:
     # Step name in instrucion: "Unieważnienie aktualnej sesji uwierzytelnienia"
     # Ends current session
     def end_session(self):
-
         url = f"{PROD_URL}/auth/sessions/current"
 
+        # Preparing header needed for the request
         headers = {
             "Authorization": f"Bearer {self._access_token}"
         }
 
+        # Sending the request
         response = requests.delete(url, headers=headers)
 
         print(f"Response code: {response.status_code}")
 
+        # Notify if the session was ended
         if response.status_code == 204:
             print("Session ended successfully")
 
