@@ -85,11 +85,10 @@ class InvoiceProcessor:
     
 
     def _add_proper_xml_headers(self):
-
         print(f"Editing following files: {self._new_files}")
 
         if not self._new_files:
-            print("Folder is empty!")
+            print("No new files to edit.")
             return
         
         for file in self._new_files:
@@ -100,30 +99,21 @@ class InvoiceProcessor:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.readlines()
 
-                # Deleting original version of a file
-                os.remove(filepath)
-
-                # Logic which ensures that prefix will be added in a proper way
+                # Logic which ensures that header will be added in a proper way
                 if content and content[0].startswith('<?xml'):
                     
-                    row = content[0]
-                    i = 0
+                    # Finding index of '>'
+                    end_index = content[0].find('>')
 
-                    while i < len(row):
-                        character = row[i]
+                    # Cutting everything before '>' character including it
+                    if end_index != -1:
+                        content[0] = content[0][end_index + 1:]
 
-                        if character == '>':
-                            break
-
-                        i += 1
-
-                    content[0] = row[i+1:]
-
+                # Adding new header
                 new_content = [XML_FIRST_LINE + '\n' + XML_SECOND_LINE + '\n'] + content
 
-                destination_path = os.path.join(self._invoice_xml_directory_path, file)
-
-                with open(destination_path, 'w', encoding='utf-8') as f:
+                # Saving edited file
+                with open(filepath, 'w', encoding='utf-8') as f:
                     f.writelines(new_content)
 
         print("Files successfully edited")
