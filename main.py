@@ -6,7 +6,6 @@ import time
 import json
 
 import constants
-from ksef_api_client import KsefApiClient
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "install-browsers":
@@ -18,6 +17,9 @@ if __name__ == "__main__":
 from directories_preparation import prepare_directories
 from invoice_preparation import prepare_invoices
 from auxiliary_functions import prepare_playwright, prepare_statistics, show_report, save_report_to_file
+
+from ksef_api_client import KsefApiClient
+from invoice_processor import InvoiceProcessor
 
 DAYS_BACK = 60
 
@@ -68,8 +70,15 @@ if __name__ == "__main__":
 
                 entities_processed += 1
 
-        # ---TO BE CHANGED--- After downloading packages (archives) with invoices in XML convert them into PDFs
-        prepare_invoices()
+        # After downloading packages (archives) with invoices in XML convert them into PDFs
+        for scope in supervision_scopes:
+            supervisor_name = scope['supervisor']
+
+            for entity in scope['entity']:
+                name = entity['name']
+
+                invoice_processor = InvoiceProcessor(name, supervisor_name)
+                invoice_processor.prepare_invoices()
 
         entities_count = prepare_statistics()
 

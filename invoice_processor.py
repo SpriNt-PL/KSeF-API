@@ -23,7 +23,7 @@ class InvoiceProcessor:
         self._supervisor_name = supervisor_name
 
         self._is_archive_present = None
-        self._new_invoices = []
+        self._new_files = []
 
 
         # Paths to directories
@@ -33,63 +33,66 @@ class InvoiceProcessor:
         self._invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
         self._supervisor_directory_path = f"{constants.OUTPUT_DIRECTORY_PATH}/{supervisor_name}"
 
-    
-    def choose_only_new_files(self, zip_file_list, destination_file_list):
-
+    # Returns a list of only new files which are not present in the destination directory
+    def _choose_only_new_files(self, zip_file_list, destination_file_list):
         new_files = list(set(zip_file_list).difference(destination_file_list))
 
         return new_files
 
 
-    def extract_files(self):
+    def _extract_files(self):
+        all_items = os.listdir(self._archive_directory_path)
 
-        files = os.listdir(self._archive_directory_path)
+        # Filtering only zip files (just in case something with other extension appears there)
+        zip_files = [f for f in all_items if f.endswith('.zip')]
 
-        if not files:
-            print("Folder is empty!")
+        if not zip_files:
+            print("Folder is empty (no zip files found)!")
             return False
 
-        filename = files[0]
-
-        source_archive_path = os.path.join(self._archive_directory_path, filename)
-
-        print(source_archive_path)
-
         invoice_xml_directory_file_list = os.listdir(self._invoice_xml_directory_path)
-        
-        with ZipFile(source_archive_path, 'r') as zip_object:
-            file_list = zip_object.namelist()
+        all_new_files = []
 
-            new_files = self.choose_only_new_files(file_list, invoice_xml_directory_file_list)
+        for zip_file in zip_files:
 
-            for file in new_files:
-                zip_object.extract(file, path=self._invoice_xml_directory_path)
+            source_archive_path = os.path.join(self._archive_directory_path, zip_file)
+            print(f"Processing archive: {source_archive_path}")
+            
+            with ZipFile(source_archive_path, 'r') as zip_object:
+                # Obtaining list of only new files and extracting them into invoice_xml_directory
+                file_list = zip_object.namelist()
+                new_files = self._choose_only_new_files(file_list, invoice_xml_directory_file_list)
+                for file in new_files:
+                    zip_object.extract(file, path=self._invoice_xml_directory_path)
 
-        if len(new_files) > 0:
-            print(f"New files extracted: {new_files}")
+            all_new_files.extend(new_files)
+            invoice_xml_directory_file_list.extend(new_files)
+
+            # Moving extracted zip to the archive 
+            destination_archive_path = os.path.join(self._old_archive_directory_path, zip_file)
+            shutil.move(source_archive_path, destination_archive_path)
+            print(f"Archive moved to {self._old_archive_directory_path}")
+
+
+        if len(all_new_files) > 0:
+            print(f"Total of new files extracted: {len(all_new_files)}")
         else:
-            print("No new files found.")
+            print("No new files found in any of the archives.")
 
-        destination_archive_path = os.path.join(self._old_archive_directory_path, filename)
-
-        shutil.move(source_archive_path, destination_archive_path)
-
-        print(f"Archive moved to {self._old_archive_directory_path}")
-
-        self._new_invoices = new_files
+        self._new_files = all_new_files
 
         return True
     
 
-    def add_proper_xml_headers(self):
+    def _add_proper_xml_headers(self):
 
-        print(f"Editing following files: {self._new_invoices}")
+        print(f"Editing following files: {self._new_files}")
 
-        if not self._new_invoices:
+        if not self._new_files:
             print("Folder is empty!")
             return
         
-        for file in self._new_invoices:
+        for file in self._new_files:
             if file.endswith('.xml') and file != 'wyroznik.xml':
 
                 filepath = os.path.join(self._invoice_xml_directory_path, file)
@@ -126,10 +129,10 @@ class InvoiceProcessor:
         print("Files successfully edited")
 
     
-    def add_ksef_number(self):
-        print(f"Editing following files: {self._new_invoices}")
+    def _add_ksef_number(self):
+        print(f"Editing following files: {self._new_files}")
 
-        for file in self._new_invoices:
+        for file in self._new_files:
             if file.endswith('.xml') and file != 'wyroznik.xml':
                 numer_ksef = os.path.splitext(file)[0]
                 filepath = os.path.join(self._invoice_xml_directory_path, file)
@@ -160,7 +163,7 @@ class InvoiceProcessor:
                     print(f"Error KodFormularza not found {file}")
 
 
-    async def process_file(self, context, file, transformer, parser, semaphore):
+    async def _process_file(self, context, file, transformer, parser, semaphore):
 
         async with semaphore:
             xml_path = os.path.join(self._invoice_xml_directory_path, file)
@@ -201,7 +204,7 @@ class InvoiceProcessor:
                 await page.close()
 
     
-    async def save_xml_as_pdf_async(self):
+    async def _save_xml_as_pdf_async(self):
         start_time = time.time()
 
         parser = etree.XMLParser(no_network=False, resolve_entities=True)
@@ -228,10 +231,10 @@ class InvoiceProcessor:
                     
                     tasks = []
 
-                    for file in self._new_invoices:
+                    for file in self._new_files:
                         if file.endswith('.xml'):
                             tasks.append(
-                                self.process_file(context, file, transformer, parser, semaphore)
+                                self._process_file(context, file, transformer, parser, semaphore)
                             )
 
                     print("Collecting all concurrent processes")
@@ -269,19 +272,19 @@ class InvoiceProcessor:
         print(textwrap.dedent(communicate))
 
         print("1. Unzipping the archive with invoices")
-        is_content = self.extract_files()
+        is_content = self._extract_files()
 
         if not is_content:
             return False
         
         print("\n2. Editing the XML files so that it is possible to visualize them")
-        self.add_proper_xml_headers()
+        self._add_proper_xml_headers()
 
         print("\n3. Add KSeF number to each new invoice")
-        self.add_ksef_number()
+        self._add_ksef_number()
 
         print("\n4. Save XML invoices as PDF")
-        asyncio.run(self.save_xml_as_pdf_async())
+        asyncio.run(self._save_xml_as_pdf_async())
 
 
 
