@@ -40,6 +40,7 @@ class InvoiceProcessor:
         return new_files
 
 
+    # Method responsible for extracting the xml files from te zip file to proper directories
     def _extract_files(self):
         all_items = os.listdir(self._archive_directory_path)
 
@@ -84,6 +85,7 @@ class InvoiceProcessor:
         return True
     
 
+    # Adding XML headers which will allow for later rendering XML in the browser
     def _add_proper_xml_headers(self):
         print(f"Editing following files: {self._new_files}")
 
@@ -119,6 +121,7 @@ class InvoiceProcessor:
         print("Files successfully edited")
 
     
+    # Adding additional tag which will allow to display the KSeF number inside of an invoice
     def _add_ksef_number(self):
         if not self._new_files:
             return
@@ -161,7 +164,8 @@ class InvoiceProcessor:
                     print(f"Error processing {file} with lxml: {e}")
 
 
-    async def _process_file(self, context, file, transformer, parser, semaphore):
+    # Asynchronous worker responsible for rendering a PDF from particular XML file
+    async def _render_pdf(self, context, file, transformer, parser, semaphore):
 
         async with semaphore:
             xml_path = os.path.join(self._invoice_xml_directory_path, file)
@@ -206,7 +210,8 @@ class InvoiceProcessor:
                 await page.close()
 
     
-    async def _save_xml_as_pdf_async(self):
+    # Method responsible for preparing XSLT and passing each invoice to be transformed into PDF
+    async def _render_all_pdfs_async(self):
         # Initializing the XML parser and XSLT transformer
         parser = etree.XMLParser(no_network=False, resolve_entities=True)
         access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
@@ -235,7 +240,7 @@ class InvoiceProcessor:
                     for file in self._new_files:
                         if file.endswith('.xml') and file != 'wyroznik.xml':
                             tasks.append(
-                                self._process_file(context, file, transformer, parser, semaphore)
+                                self._render_pdf(context, file, transformer, parser, semaphore)
                             )
 
                     print(f"Collecting and executing {len(tasks)} concurrent PDF processes")
@@ -265,7 +270,8 @@ class InvoiceProcessor:
         print(f"2. Process Execution time: {end_time - start_time} seconds")
 
     
-    def prepare_invoices(self):
+    # Invoice processing orchestrator 
+    def process_invoices(self):
         communicate = f"""
         =================================================================
         Processing invoices belonging to: {self._name}
@@ -286,8 +292,8 @@ class InvoiceProcessor:
         print("\n3. Add KSeF number to each new invoice")
         self._add_ksef_number()
 
-        print("\n4. Save XML invoices as PDF")
-        asyncio.run(self._save_xml_as_pdf_async())
+        print("\n4. Render PDF invoices from XMLs")
+        asyncio.run(self._render_all_pdfs_async())
 
 
 
@@ -306,4 +312,4 @@ if __name__ == '__main__':
 
             invoice_processor = InvoiceProcessor(name, supervisor_name)
 
-            invoice_processor.prepare_invoices()
+            invoice_processor.process_invoices()

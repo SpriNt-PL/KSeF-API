@@ -78,7 +78,7 @@ if __name__ == "__main__":
                 name = entity['name']
 
                 invoice_processor = InvoiceProcessor(name, supervisor_name)
-                invoice_processor.prepare_invoices()
+                invoice_processor.process_invoices()
 
         entities_count = prepare_statistics()
 
