@@ -166,17 +166,19 @@ class InvoiceProcessor:
         async with semaphore:
             xml_path = os.path.join(self._invoice_xml_directory_path, file)
 
+            # Parse the XML file and transform it into the HTML file using provided xslt transformer
             xml_dom = etree.parse(xml_path, parser=parser)
-
             result_html = transformer(xml_dom)
             html_string = etree.tostring(result_html, method='html', encoding='unicode')
 
+            # Open a new tab in the Playwright browser context
             page = await context.new_page()
 
             try:
-
+                # Load html into the browser context
                 await page.set_content(html_string, wait_until="domcontentloaded")
 
+                # Print the rendered page to a PDF byte stream
                 pdf_bytes = await page.pdf(
                     format='A4',
                     print_background=True
@@ -184,10 +186,12 @@ class InvoiceProcessor:
 
                 pdf_filename = file.replace('.xml', '.pdf')
 
+                # Save the PDF in the entity's specific folder
                 pdf_path_1 = os.path.join(self._invoice_pdf_directory_path, pdf_filename)
                 with open(pdf_path_1, 'wb') as f:
                     f.write(pdf_bytes)
 
+                # Save the same PDF to the supervisor's folder
                 pdf_path_2 = os.path.join(self._supervisor_directory_path, pdf_filename)
                 with open(pdf_path_2, 'wb') as f:
                     f.write(pdf_bytes)
@@ -197,60 +201,61 @@ class InvoiceProcessor:
             except Exception as e:
                 print(f"Error in file {file}: {e}")
 
-        
+            # Always closing the page to free the memory
             finally:
                 await page.close()
 
     
     async def _save_xml_as_pdf_async(self):
-        start_time = time.time()
-
+        # Initializing the XML parser and XSLT transformer
         parser = etree.XMLParser(no_network=False, resolve_entities=True)
         access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
-
         xsl_dom = etree.parse(constants.XSL_STYLE_FILE, parser=parser)
         transformer = etree.XSLT(xsl_dom, access_control=access_control)
 
+        # Setting up the semaphore in order to control the maximum concurrency
         semaphore = asyncio.Semaphore(MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES)
 
-        end_time = time.time()
-
-        print(f"1. Process Execution time: {end_time - start_time} seconds")
-
         start_time = time.time()
+        # Launching the browser for background processing
         async with async_playwright() as p:
+            # Specifying the browser's details
             browser = await p.chromium.launch(
                 headless=True, 
                 args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--single-process"]
             )
 
             try:
+                # Initializing a single browser session
                 async with await browser.new_context() as context:
                     
                     tasks = []
 
+                    # Creating an asynchronous task for each XML file
                     for file in self._new_files:
-                        if file.endswith('.xml'):
+                        if file.endswith('.xml') and file != 'wyroznik.xml':
                             tasks.append(
                                 self._process_file(context, file, transformer, parser, semaphore)
                             )
 
-                    print("Collecting all concurrent processes")
+                    print(f"Collecting and executing {len(tasks)} concurrent PDF processes")
+                    # Running all tasks concurrently and waiting for them to finish
                     if tasks:
                         await asyncio.gather(*tasks)
 
                     print("All tasks finished inside context.")
 
             finally:
-                print("Force-closing the browser...")
+                print("Closing the browser environment...")
                 try:
-                    start_time = time.time()
+                    start_closing_time = time.time()
 
+                    # Using the timeouts to prevent the program from hanging forever
                     await asyncio.wait_for(context.close(), timeout=10.0)
                     await asyncio.wait_for(browser.close(), timeout=10.0)
 
-                    end_time = time.time()
-                    elapsed_time = end_time - start_time
+                    end_closing_time = time.time()
+                    elapsed_time = end_closing_time - start_closing_time
                     print(f"Browser closed in {elapsed_time:.2f}.")
                 except asyncio.TimeoutError:
                     print("Browser close timed out - proceeding anyway.")
