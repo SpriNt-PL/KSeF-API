@@ -49,7 +49,7 @@ if __name__ == "__main__":
             supervision_scopes = json.load(file)
 
         failure_list = []
-        entities_processed = 0
+        entities_archives_downloaded_count = 0
 
         # Loop over each supervision scope (e.g. "John Doe" supervises "Goodfood" and "BestCars" entities and 
         # the bundle of these entities is called scope)
@@ -67,8 +67,8 @@ if __name__ == "__main__":
                 success = ksef_client.download_invoices()
                 if not success:
                     failure_list.append(name)
-
-                entities_processed += 1
+                else:
+                    entities_archives_downloaded_count += 1
 
         # After downloading packages (archives) with invoices in XML convert them into PDFs
         for scope in supervision_scopes:
@@ -87,7 +87,7 @@ if __name__ == "__main__":
         elapsed_time = end_time - start_time
 
         # Saving the report 
-        save_report_to_file(failure_list, entities_count, entities_processed, elapsed_time)
+        save_report_to_file(failure_list, entities_count, entities_archives_downloaded_count, elapsed_time)
 
         print(f"\nTotal execution time: {elapsed_time:.2f} seconds")
 

@@ -55,7 +55,7 @@ def show_report(failure_list, entities_count, entities_processed):
         print("All entities were processed")
 
 
-def save_report_to_file(failure_list, entities_count, entities_processed, elapsed_time):
+def save_report_to_file(failure_list, entities_count, entities_archives_downloaded_count, elapsed_time):
     
     now = datetime.now()
 
@@ -63,11 +63,11 @@ def save_report_to_file(failure_list, entities_count, entities_processed, elapse
         line = f"Raport z dnia {now}"
         f.write(line)
     
-        line = f"\nWspolnoty dla ktorych faktury zostaly pobrane {entities_processed}/{entities_count}"
+        line = f"\nWspolnoty dla ktorych faktury zostaly pobrane {entities_archives_downloaded_count}/{entities_count}"
         f.write(line)
 
         if len(failure_list) > 0:
-            print("\nLista wspolnot, których faktury nie zostały pobrane:")
+            f.write("\nLista wspolnot, ktorych faktury nie zostaly pobrane:")
         
             for entity in failure_list:
                 line = f"\n{entity}"
