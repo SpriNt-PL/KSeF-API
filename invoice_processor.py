@@ -23,7 +23,7 @@ class InvoiceProcessor:
         self._supervisor_name = supervisor_name
 
         self._is_archive_present = None
-        self._new_invoices = []
+        self._new_files = []
 
 
         # Paths to directories
@@ -33,63 +33,67 @@ class InvoiceProcessor:
         self._invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
         self._supervisor_directory_path = f"{constants.OUTPUT_DIRECTORY_PATH}/{supervisor_name}"
 
-    
-    def choose_only_new_files(self, zip_file_list, destination_file_list):
-
+    # Returns a list of only new files which are not present in the destination directory
+    def _choose_only_new_files(self, zip_file_list, destination_file_list):
         new_files = list(set(zip_file_list).difference(destination_file_list))
 
         return new_files
 
 
-    def extract_files(self):
+    # Method responsible for extracting the xml files from te zip file to proper directories
+    def _extract_files(self):
+        all_items = os.listdir(self._archive_directory_path)
 
-        files = os.listdir(self._archive_directory_path)
+        # Filtering only zip files (just in case something with other extension appears there)
+        zip_files = [f for f in all_items if f.endswith('.zip')]
 
-        if not files:
-            print("Folder is empty!")
+        if not zip_files:
+            print("Folder is empty (no zip files found)!")
             return False
 
-        filename = files[0]
-
-        source_archive_path = os.path.join(self._archive_directory_path, filename)
-
-        print(source_archive_path)
-
         invoice_xml_directory_file_list = os.listdir(self._invoice_xml_directory_path)
-        
-        with ZipFile(source_archive_path, 'r') as zip_object:
-            file_list = zip_object.namelist()
+        all_new_files = []
 
-            new_files = self.choose_only_new_files(file_list, invoice_xml_directory_file_list)
+        for zip_file in zip_files:
 
-            for file in new_files:
-                zip_object.extract(file, path=self._invoice_xml_directory_path)
+            source_archive_path = os.path.join(self._archive_directory_path, zip_file)
+            print(f"Processing archive: {source_archive_path}")
+            
+            with ZipFile(source_archive_path, 'r') as zip_object:
+                # Obtaining list of only new files and extracting them into invoice_xml_directory
+                file_list = zip_object.namelist()
+                new_files = self._choose_only_new_files(file_list, invoice_xml_directory_file_list)
+                for file in new_files:
+                    zip_object.extract(file, path=self._invoice_xml_directory_path)
 
-        if len(new_files) > 0:
-            print(f"New files extracted: {new_files}")
+            all_new_files.extend(new_files)
+            invoice_xml_directory_file_list.extend(new_files)
+
+            # Moving extracted zip to the archive 
+            destination_archive_path = os.path.join(self._old_archive_directory_path, zip_file)
+            shutil.move(source_archive_path, destination_archive_path)
+            print(f"Archive moved to {self._old_archive_directory_path}")
+
+
+        if len(all_new_files) > 0:
+            print(f"Total of new files extracted: {len(all_new_files)}")
         else:
-            print("No new files found.")
+            print("No new files found in any of the archives.")
 
-        destination_archive_path = os.path.join(self._old_archive_directory_path, filename)
-
-        shutil.move(source_archive_path, destination_archive_path)
-
-        print(f"Archive moved to {self._old_archive_directory_path}")
-
-        self._new_invoices = new_files
+        self._new_files = all_new_files
 
         return True
     
 
-    def add_proper_xml_headers(self):
+    # Adding XML headers which will allow for later rendering XML in the browser
+    def _add_proper_xml_headers(self):
+        print(f"Editing following files: {self._new_files}")
 
-        print(f"Editing following files: {self._new_invoices}")
-
-        if not self._new_invoices:
-            print("Folder is empty!")
+        if not self._new_files:
+            print("No new files to edit.")
             return
         
-        for file in self._new_invoices:
+        for file in self._new_files:
             if file.endswith('.xml') and file != 'wyroznik.xml':
 
                 filepath = os.path.join(self._invoice_xml_directory_path, file)
@@ -97,85 +101,88 @@ class InvoiceProcessor:
                 with open(filepath, 'r', encoding='utf-8') as f:
                     content = f.readlines()
 
-                # Deleting original version of a file
-                os.remove(filepath)
-
-                # Logic which ensures that prefix will be added in a proper way
+                # Logic which ensures that header will be added in a proper way
                 if content and content[0].startswith('<?xml'):
                     
-                    row = content[0]
-                    i = 0
+                    # Finding index of '>'
+                    end_index = content[0].find('>')
 
-                    while i < len(row):
-                        character = row[i]
+                    # Cutting everything before '>' character including it
+                    if end_index != -1:
+                        content[0] = content[0][end_index + 1:]
 
-                        if character == '>':
-                            break
-
-                        i += 1
-
-                    content[0] = row[i+1:]
-
+                # Adding new header
                 new_content = [XML_FIRST_LINE + '\n' + XML_SECOND_LINE + '\n'] + content
 
-                destination_path = os.path.join(self._invoice_xml_directory_path, file)
-
-                with open(destination_path, 'w', encoding='utf-8') as f:
+                # Saving edited file
+                with open(filepath, 'w', encoding='utf-8') as f:
                     f.writelines(new_content)
 
         print("Files successfully edited")
 
     
-    def add_ksef_number(self):
-        print(f"Editing following files: {self._new_invoices}")
+    # Adding additional tag which will allow to display the KSeF number inside of an invoice
+    def _add_ksef_number(self):
+        if not self._new_files:
+            return
+        
+        print(f"Adding KSeF numbers to {len(self._new_files)} files.")
 
-        for file in self._new_invoices:
+        # Parser initialization
+        parser = etree.XMLParser(remove_blank_text=False)
+
+        for file in self._new_files:
             if file.endswith('.xml') and file != 'wyroznik.xml':
-                numer_ksef = os.path.splitext(file)[0]
+                ksef_number = os.path.splitext(file)[0]
                 filepath = os.path.join(self._invoice_xml_directory_path, file)
 
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                try:
+                    # Parsing the xml file to the tree
+                    tree = etree.parse(filepath, parser)
 
-                pattern = r"(</(([a-zA-Z0-9]+):)?KodFormularza>)"
+                    # Searching for the tag "KodFormularza" and ignoring the prefixes
+                    code_elements = tree.xpath("//*[local-name()='KodFormularza']")
 
-                match = re.search(pattern, content)
+                    if code_elements:
+                        code_element = code_elements[0]
 
-                if match:
-                    full_closing_tag = match.group(1)
-                    prefix_with_colon = match.group(2) if match.group(2) else ""
+                        namespace = code_element.tag.replace("KodFormularza", "")
 
-                    new_tag = f"<{prefix_with_colon}NumerKSeF>{numer_ksef}</{prefix_with_colon}NumerKSeF>"
+                        # Creating new element with KSeF number
+                        new_element = etree.Element(f"{namespace}NumerKSeF")
+                        new_element.text = ksef_number
 
-                    separator = "\n    " if "\n" in content else ""
+                        # Adding new tag after the "KodFormularza"
+                        code_element.addnext(new_element)
 
-                    replacement = f"{full_closing_tag}{separator}{new_tag}"
+                        # Saving prepared tree to back to the file
+                        tree.write(filepath, encoding='utf-8', xml_declaration=True)
+                    else:
+                        print(f"Error KodFormularza not found: {file}. KSeF number not added.")
 
-                    new_content = content.replace(full_closing_tag, replacement, 1)
-
-                    with open(filepath, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-
-                else:
-                    print(f"Error KodFormularza not found {file}")
+                except Exception as e:
+                    print(f"Error processing {file} with lxml: {e}")
 
 
-    async def process_file(self, context, file, transformer, parser, semaphore):
+    # Asynchronous worker responsible for rendering a PDF from particular XML file
+    async def _render_pdf(self, context, file, transformer, parser, semaphore):
 
         async with semaphore:
             xml_path = os.path.join(self._invoice_xml_directory_path, file)
 
+            # Parse the XML file and transform it into the HTML file using provided xslt transformer
             xml_dom = etree.parse(xml_path, parser=parser)
-
             result_html = transformer(xml_dom)
             html_string = etree.tostring(result_html, method='html', encoding='unicode')
 
+            # Open a new tab in the Playwright browser context
             page = await context.new_page()
 
             try:
-
+                # Load html into the browser context
                 await page.set_content(html_string, wait_until="domcontentloaded")
 
+                # Print the rendered page to a PDF byte stream
                 pdf_bytes = await page.pdf(
                     format='A4',
                     print_background=True
@@ -183,10 +190,12 @@ class InvoiceProcessor:
 
                 pdf_filename = file.replace('.xml', '.pdf')
 
+                # Save the PDF in the entity's specific folder
                 pdf_path_1 = os.path.join(self._invoice_pdf_directory_path, pdf_filename)
                 with open(pdf_path_1, 'wb') as f:
                     f.write(pdf_bytes)
 
+                # Save the same PDF to the supervisor's folder
                 pdf_path_2 = os.path.join(self._supervisor_directory_path, pdf_filename)
                 with open(pdf_path_2, 'wb') as f:
                     f.write(pdf_bytes)
@@ -196,60 +205,62 @@ class InvoiceProcessor:
             except Exception as e:
                 print(f"Error in file {file}: {e}")
 
-        
+            # Always closing the page to free the memory
             finally:
                 await page.close()
 
     
-    async def save_xml_as_pdf_async(self):
-        start_time = time.time()
-
+    # Method responsible for preparing XSLT and passing each invoice to be transformed into PDF
+    async def _render_all_pdfs_async(self):
+        # Initializing the XML parser and XSLT transformer
         parser = etree.XMLParser(no_network=False, resolve_entities=True)
         access_control = etree.XSLTAccessControl(read_network=True, read_file=True)
-
         xsl_dom = etree.parse(constants.XSL_STYLE_FILE, parser=parser)
         transformer = etree.XSLT(xsl_dom, access_control=access_control)
 
+        # Setting up the semaphore in order to control the maximum concurrency
         semaphore = asyncio.Semaphore(MAXIMUM_NUMBER_OF_ASYNCHRONOUS_PROCESSES)
 
-        end_time = time.time()
-
-        print(f"1. Process Execution time: {end_time - start_time} seconds")
-
         start_time = time.time()
+        # Launching the browser for background processing
         async with async_playwright() as p:
+            # Specifying the browser's details
             browser = await p.chromium.launch(
                 headless=True, 
                 args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--single-process"]
             )
 
             try:
+                # Initializing a single browser session
                 async with await browser.new_context() as context:
                     
                     tasks = []
 
-                    for file in self._new_invoices:
-                        if file.endswith('.xml'):
+                    # Creating an asynchronous task for each XML file
+                    for file in self._new_files:
+                        if file.endswith('.xml') and file != 'wyroznik.xml':
                             tasks.append(
-                                self.process_file(context, file, transformer, parser, semaphore)
+                                self._render_pdf(context, file, transformer, parser, semaphore)
                             )
 
-                    print("Collecting all concurrent processes")
+                    print(f"Collecting and executing {len(tasks)} concurrent PDF processes")
+                    # Running all tasks concurrently and waiting for them to finish
                     if tasks:
                         await asyncio.gather(*tasks)
 
                     print("All tasks finished inside context.")
 
             finally:
-                print("Force-closing the browser...")
+                print("Closing the browser environment...")
                 try:
-                    start_time = time.time()
+                    start_closing_time = time.time()
 
+                    # Using the timeouts to prevent the program from hanging forever
                     await asyncio.wait_for(context.close(), timeout=10.0)
                     await asyncio.wait_for(browser.close(), timeout=10.0)
 
-                    end_time = time.time()
-                    elapsed_time = end_time - start_time
+                    end_closing_time = time.time()
+                    elapsed_time = end_closing_time - start_closing_time
                     print(f"Browser closed in {elapsed_time:.2f}.")
                 except asyncio.TimeoutError:
                     print("Browser close timed out - proceeding anyway.")
@@ -259,7 +270,8 @@ class InvoiceProcessor:
         print(f"2. Process Execution time: {end_time - start_time} seconds")
 
     
-    def prepare_invoices(self):
+    # Invoice processing orchestrator 
+    def process_invoices(self):
         communicate = f"""
         =================================================================
         Processing invoices belonging to: {self._name}
@@ -269,19 +281,19 @@ class InvoiceProcessor:
         print(textwrap.dedent(communicate))
 
         print("1. Unzipping the archive with invoices")
-        is_content = self.extract_files()
+        is_content = self._extract_files()
 
         if not is_content:
             return False
         
         print("\n2. Editing the XML files so that it is possible to visualize them")
-        self.add_proper_xml_headers()
+        self._add_proper_xml_headers()
 
         print("\n3. Add KSeF number to each new invoice")
-        self.add_ksef_number()
+        self._add_ksef_number()
 
-        print("\n4. Save XML invoices as PDF")
-        asyncio.run(self.save_xml_as_pdf_async())
+        print("\n4. Render PDF invoices from XMLs")
+        asyncio.run(self._render_all_pdfs_async())
 
 
 
@@ -300,4 +312,4 @@ if __name__ == '__main__':
 
             invoice_processor = InvoiceProcessor(name, supervisor_name)
 
-            invoice_processor.prepare_invoices()
+            invoice_processor.process_invoices()
