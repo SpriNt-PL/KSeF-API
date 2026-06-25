@@ -975,45 +975,39 @@
 			<table class="white-space">
 				<tr>
 					<td class="niewypelniane">Numer wiersza faktury</td>
-					<td class="niewypelniane">Uniwersalny unikalny numer wiersza faktury</td>
+					<!-- <td class="niewypelniane">Uniwersalny unikalny numer wiersza faktury</td> -->
 					<td class="niewypelniane">Nazwa (rodzaj) towaru lub usługi</td>
-					<td class="niewypelniane">Indeks</td>
-					<td class="niewypelniane">Jednostka miary</td>
-					<td class="niewypelniane">Ilość</td>
+					<!-- <td class="niewypelniane">Indeks</td> -->
 					<td class="niewypelniane">Cena jednostkowa</td>
-					<td class="niewypelniane">Opusty i obniżki cen</td>
+					<td class="niewypelniane">Ilość</td>
+					<td class="niewypelniane">Jednostka miary</td>
+					<!-- <td class="niewypelniane">Opusty i obniżki cen</td> -->
+					<td class="niewypelniane">Stawka podatku</td>
 					<td class="niewypelniane">Wartość sprzedaży</td>
 					<td class="niewypelniane">Kwota VAT</td>
-					<td class="niewypelniane">Stawka podatku</td>
-					<td class="niewypelniane">Stawka podatku od wartości dodanej</td>
+					<!-- <td class="niewypelniane">Stawka podatku od wartości dodanej</td>
 					<td class="niewypelniane">Data dokonania lub zakończenia dostawy towarów lub wykonania usługi lub data otrzymania zapłaty</td>
 					<td class="niewypelniane">Klasyfikacja</td>
 					<td class="niewypelniane">Kwota podatku akcyzowego zawarta w cenie towaru</td>
 					<td class="niewypelniane">Oznaczenie dotyczące dostawy towarów i świadczenia usług lub procedury</td>
 					<td class="niewypelniane">Kurs waluty z Działu VI ustawy</td>
 					<td class="niewypelniane">Znacznik dla towaru lub usługi z załącznika nr 15 do ustawy</td>
-					<td class="niewypelniane">Znacznik stanu przed korektą</td>
+					<td class="niewypelniane">Znacznik stanu przed korektą</td> -->
 				</tr>
 				<xsl:for-each select="tns:Fa/tns:FaWiersz">
 					<tr>
 						<td class="srodek" width="auto">
 							<xsl:value-of select="tns:NrWierszaFa"/>
 						</td>
-						<td class="lewa" width="auto">
+						<!-- <td class="lewa" width="auto">
 							<xsl:value-of select="tns:UU_ID"/>
-						</td>
+						</td> -->
 						<td class="lewa" width="auto">
 							<xsl:value-of select="tns:P_7"/>
 						</td>
-						<td class="lewa" width="auto">
+						<!-- <td class="lewa" width="auto">
 							<xsl:value-of select="tns:Indeks"/>
-						</td>
-						<td class="lewa" width="auto">
-							<xsl:value-of select="tns:P_8A"/>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:value-of select="tns:P_8B"/>
-						</td>
+						</td> -->
 						<td class="prawa" width="auto">
 							<xsl:if test="tns:P_9A">
 								<xsl:value-of select="tns:P_9A"/> netto
@@ -1024,20 +1018,14 @@
 								</xsl:if>
 						</td>
 						<td class="prawa" width="auto">
+							<xsl:value-of select="tns:P_8B"/>
+						</td>
+						<td class="lewa" width="auto">
+							<xsl:value-of select="tns:P_8A"/>
+						</td>
+						<!-- <td class="prawa" width="auto">
 							<xsl:value-of select="tns:P_10"/>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:if test="tns:P_11">
-								<xsl:value-of select="tns:P_11"/> netto
-								</xsl:if>
-							<xsl:if test="tns:P_11A">
-								<br/>
-								<xsl:value-of select="tns:P_11A"/> brutto
-								</xsl:if>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:value-of select="tns:P_11Vat"/>
-						</td>
+						</td> -->
 						<td class="srodek" width="auto">
 							<xsl:choose>
 								<xsl:when test="tns:P_12 = '23'">
@@ -1084,7 +1072,19 @@
 								</xsl:when>
 							</xsl:choose>
 						</td>
-						<td class="srodek" width="auto">
+						<td class="prawa" width="auto">
+							<xsl:if test="tns:P_11">
+								<xsl:value-of select="tns:P_11"/> netto
+								</xsl:if>
+							<xsl:if test="tns:P_11A">
+								<br/>
+								<xsl:value-of select="tns:P_11A"/> brutto
+								</xsl:if>
+						</td>
+						<td class="prawa" width="auto">
+							<xsl:value-of select="tns:P_11Vat"/>
+						</td>
+						<!-- <td class="srodek" width="auto">
 							<xsl:if test="tns:P_12_XII">
 								<xsl:value-of select="tns:P_12_XII"/>
 								<xsl:text>%</xsl:text>
@@ -1152,7 +1152,7 @@
 									<xsl:text>1. Tak</xsl:text>
 								</b>
 							</xsl:if>
-						</td>
+						</td> -->
 					</tr>
 				</xsl:for-each>
 			</table>
