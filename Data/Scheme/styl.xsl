@@ -6,6 +6,10 @@
    	</xsl:template>
 	<xsl:template name="StyleDlaFormularza">
 		<style type="text/css">
+
+	body, div, table, td {
+		font-size: 10px;
+	}
       
     .tlo-formularza { background-color:#D3D3D3; }
     table.wrapping, .break-word {
@@ -26,9 +30,9 @@
 	background-color: #D3D3D3;
 	}
 
-    .lewa {	border: 1px solid black; font-size: 1.2em; padding: 1px; vertical-align: top; text-align: left;}
-    .srodek { border: 1px solid black; font-size: 1.2em; padding: 1px; vertical-align: top; text-align: center;}
-    .prawa { border: 1px solid black; font-size: 1.2em; padding: 1px; vertical-align: top; text-align: right;}
+    .lewa {	border: 1px solid black; font-size: 10px; padding: 1px; vertical-align: top; text-align: left;}
+    .srodek { border: 1px solid black; font-size: 10px; padding: 1px; vertical-align: top; text-align: center;}
+    .prawa { border: 1px solid black; font-size: 10px; padding: 1px; vertical-align: top; text-align: right;}
    </style>
 	</xsl:template>
 	<xsl:template match="tns:Faktura">
@@ -978,12 +982,24 @@
 					<!-- <td class="niewypelniane">Uniwersalny unikalny numer wiersza faktury</td> -->
 					<td class="niewypelniane">Nazwa (rodzaj) towaru lub usługi</td>
 					<!-- <td class="niewypelniane">Indeks</td> -->
-					<td class="niewypelniane">Cena jednostkowa</td>
+					<td class="niewypelniane">
+						Cena jednostkowa
+						<xsl:choose>
+							<xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_9A"> (netto)</xsl:when>
+                            <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_9B"> (brutto)</xsl:when>
+						</xsl:choose>
+					</td>
 					<td class="niewypelniane">Ilość</td>
 					<td class="niewypelniane">Jednostka miary</td>
 					<!-- <td class="niewypelniane">Opusty i obniżki cen</td> -->
 					<td class="niewypelniane">Stawka podatku</td>
-					<td class="niewypelniane">Wartość sprzedaży</td>
+					<td class="niewypelniane">
+                        Wartość sprzedaży
+                        <xsl:choose>
+                            <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_11"> (netto)</xsl:when>
+                            <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_11A"> (brutto)</xsl:when>
+                        </xsl:choose>
+                    </td>
 					<td class="niewypelniane">Kwota VAT</td>
 					<!-- <td class="niewypelniane">Stawka podatku od wartości dodanej</td>
 					<td class="niewypelniane">Data dokonania lub zakończenia dostawy towarów lub wykonania usługi lub data otrzymania zapłaty</td>
@@ -1010,12 +1026,10 @@
 						</td> -->
 						<td class="prawa" width="auto">
 							<xsl:if test="tns:P_9A">
-								<xsl:value-of select="tns:P_9A"/> netto
-								</xsl:if>
+								<xsl:value-of select="tns:P_9A"/></xsl:if>
 							<xsl:if test="tns:P_9B">
-								<br/>
-								<xsl:value-of select="tns:P_9B"/> brutto
-								</xsl:if>
+								<!-- <br/> -->
+								<xsl:value-of select="tns:P_9B"/></xsl:if>
 						</td>
 						<td class="prawa" width="auto">
 							<xsl:value-of select="tns:P_8B"/>
@@ -1074,12 +1088,10 @@
 						</td>
 						<td class="prawa" width="auto">
 							<xsl:if test="tns:P_11">
-								<xsl:value-of select="tns:P_11"/> netto
-								</xsl:if>
+								<xsl:value-of select="tns:P_11"/></xsl:if>
 							<xsl:if test="tns:P_11A">
-								<br/>
-								<xsl:value-of select="tns:P_11A"/> brutto
-								</xsl:if>
+								<!-- <br/> -->
+								<xsl:value-of select="tns:P_11A"/></xsl:if>
 						</td>
 						<td class="prawa" width="auto">
 							<xsl:value-of select="tns:P_11Vat"/>
