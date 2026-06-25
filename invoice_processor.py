@@ -120,37 +120,45 @@ class InvoiceProcessor:
 
     
     def _add_ksef_number(self):
-        print(f"Editing following files: {self._new_files}")
+        if not self._new_files:
+            return
+        
+        print(f"Adding KSeF numbers to {len(self._new_files)} files.")
+
+        # Parser initialization
+        parser = etree.XMLParser(remove_blank_text=False)
 
         for file in self._new_files:
             if file.endswith('.xml') and file != 'wyroznik.xml':
-                numer_ksef = os.path.splitext(file)[0]
+                ksef_number = os.path.splitext(file)[0]
                 filepath = os.path.join(self._invoice_xml_directory_path, file)
 
-                with open(filepath, 'r', encoding='utf-8') as f:
-                    content = f.read()
+                try:
+                    # Parsing the xml file to the tree
+                    tree = etree.parse(filepath, parser)
 
-                pattern = r"(</(([a-zA-Z0-9]+):)?KodFormularza>)"
+                    # Searching for the tag "KodFormularza" and ignoring the prefixes
+                    code_elements = tree.xpath("//*[local-name()='KodFormularza']")
 
-                match = re.search(pattern, content)
+                    if code_elements:
+                        code_element = code_elements[0]
 
-                if match:
-                    full_closing_tag = match.group(1)
-                    prefix_with_colon = match.group(2) if match.group(2) else ""
+                        namespace = code_element.tag.replace("KodFormularza", "")
 
-                    new_tag = f"<{prefix_with_colon}NumerKSeF>{numer_ksef}</{prefix_with_colon}NumerKSeF>"
+                        # Creating new element with KSeF number
+                        new_element = etree.Element(f"{namespace}NumerKSeF")
+                        new_element.text = ksef_number
 
-                    separator = "\n    " if "\n" in content else ""
+                        # Adding new tag after the "KodFormularza"
+                        code_element.addnext(new_element)
 
-                    replacement = f"{full_closing_tag}{separator}{new_tag}"
+                        # Saving prepared tree to back to the file
+                        tree.write(filepath, encoding='utf-8', xml_declaration=True)
+                    else:
+                        print(f"Error KodFormularza not found: {file}. KSeF number not added.")
 
-                    new_content = content.replace(full_closing_tag, replacement, 1)
-
-                    with open(filepath, 'w', encoding='utf-8') as f:
-                        f.write(new_content)
-
-                else:
-                    print(f"Error KodFormularza not found {file}")
+                except Exception as e:
+                    print(f"Error processing {file} with lxml: {e}")
 
 
     async def _process_file(self, context, file, transformer, parser, semaphore):
