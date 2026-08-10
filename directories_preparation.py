@@ -12,7 +12,7 @@ def create_invoice_directory(base_path):
         os.mkdir(base_path)
         print("Main invoice directory created.")
 
-def create_entities_directories(supervision_scopes):
+def create_entities_directories(supervision_scopes, path):
 
     for scope in supervision_scopes:
 
@@ -20,13 +20,13 @@ def create_entities_directories(supervision_scopes):
 
             name = entity['name']
 
-            entity_directory = f"{constants.INVOICE_DIRECTORY_PATH}/{name}"
+            entity_directory = f"{path}/{name}"
 
             if os.path.isdir(entity_directory):
                 print(f"{name} directory exists.")
 
             else:
-                os.mkdir(entity_directory)
+                os.makedirs(entity_directory, exist_ok=True)
                 print(f"{name} directory created.")
 
 
@@ -92,17 +92,19 @@ def create_directory_for_each_supervisor(base_path, supervision_scopes):
 
 
 def prepare_directories():
+    with open(constants.DATA_FILE_PATH, 'r') as file:
+            supervision_scopes = json.load(file)
+
+    print("\nPreparing directory for certificates")
+    create_entities_directories(supervision_scopes, constants.CERTIFICATES_DIRECTORY)
 
     print("\nPreparing working directory for file processing")
 
     print("\n1. Create main invoice directory")
     create_invoice_directory(constants.INVOICE_DIRECTORY_PATH)
 
-    with open(constants.DATA_FILE_PATH, 'r') as file:
-        supervision_scopes = json.load(file)
-
-    print("\n2. Create entity directories")
-    create_entities_directories(supervision_scopes)
+    print("\n2. Create entity directories in Invoice directory")
+    create_entities_directories(supervision_scopes, constants.INVOICE_DIRECTORY_PATH)
 
     print("\n3. Create essential directories directories for each entity")
     create_essential_directories_for_each_entity(supervision_scopes)

@@ -1,9 +1,10 @@
-BASE_PATH = 'W:/KSeF'
+# BASE_PATH = 'W:/KSeF'
 #BASE_PATH = 'C:/Moje/KSeF_API/KSeF-API/dist'
-# BASE_PATH = '.'
+BASE_PATH = '.'
 
 DATA_FILE_PATH = f'{BASE_PATH}/Data/data.json'
 XSL_STYLE_FILE = f'{BASE_PATH}/Data/Scheme/styl.xsl'
+CERTIFICATES_DIRECTORY = f'{BASE_PATH}/Data/Certificates'
 
 INVOICE_DIRECTORY_PATH = f'{BASE_PATH}/Invoices'
 #INVOICE_DIRECTORY_PATH = './Invoices'
