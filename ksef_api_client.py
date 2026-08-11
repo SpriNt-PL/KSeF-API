@@ -4,12 +4,18 @@ import json
 import textwrap
 import base64
 import os
+import configparser
+from pathlib import Path
 from datetime import datetime, timedelta, timezone
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography import x509
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding as aes_padding
+from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
+from lxml import etree
+from signxml import XMLSigner, methods
+from cryptography.hazmat.primitives import serialization
 
 
 import constants
@@ -27,11 +33,12 @@ ACCESS_TOKENS_DELAY_TIME = 5
 MAX_ATTEMPTS = 5
 
 class KsefApiClient:
-    def __init__(self, name, nip, token, date_from):
+    def __init__(self, name, nip, token, has_certificate, date_from):
         # Entity session details
         self._name = name
         self._nip = nip
         self._token = token
+        self._has_certificate = has_certificate
         self._date_from = date_from
 
         # Introduced on "1. Certifying initialization" step
@@ -58,6 +65,13 @@ class KsefApiClient:
         self._initialization_vector = None
         self._package_reference_number = None
         self._parts_data = None
+
+        # Configuration from .ini file
+        self._config = configparser.ConfigParser()
+        self._config.read("config.ini")
+
+        # Certificate password
+        self.cert_password = self._config['certificate']['password']
 
     # Step name in instrucion: "Inicjalizacja uwierzytelnienia"
     # Generates unique challange required in the next certifying step
@@ -117,8 +131,8 @@ class KsefApiClient:
         self._encrypted_token = base64.b64encode(encrypted).decode('utf-8')
 
     # Step name in instrucion: "Uwierzytelnienie z wykorzystaniem tokena KSeF"
-    # Starts certifying using previously generated KSeF token
-    def certifying_with_token(self):
+    # Starts authentication using previously generated KSeF token
+    def authentication_with_token(self):
         url = f"{PROD_URL}/auth/ksef-token"
 
         # Preparing the request's payload
@@ -138,7 +152,7 @@ class KsefApiClient:
         # Reading content of the response if status code is 202 (positive)
         if response.status_code == 202:
             response_data = response.json()
-            print(f"Token ważny do: {response_data['authenticationToken']['validUntil']}")
+            print(f"Token valid until: {response_data['authenticationToken']['validUntil']}")
             self._session_token = response_data['authenticationToken']['token']
             self._reference_number = response_data['referenceNumber']
             return True
@@ -146,6 +160,99 @@ class KsefApiClient:
         else:
             print(response_data)
             return False
+
+    def create_signed_auth_token_request(self):
+        xml_template = (
+            '<?xml version="1.0" encoding="utf-8"?>'
+            '<AuthTokenRequest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
+            'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
+            'xmlns="http://ksef.mf.gov.pl/auth/token/2.0">'
+            f'<Challenge>{self._challenge}</Challenge>'
+            '<ContextIdentifier>'
+            f'<Nip>{self._nip}</Nip>'
+            '</ContextIdentifier>'
+            '<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>'
+            '</AuthTokenRequest>'
+        )
+
+        parser = etree.XMLParser(remove_blank_text=True)
+        root = etree.fromstring(xml_template.encode('utf-8'), parser=parser)
+
+        certificate_dir = Path(os.path.join(constants.CERTIFICATES_DIRECTORY, self._name)).resolve()
+
+        print(certificate_dir)
+        
+        crt_files = list(certificate_dir.glob("*.crt"))
+        key_files = list(certificate_dir.glob("*.key"))
+
+        if not crt_files:
+            raise ValueError("File .crt not found")
+        if not key_files:
+            raise ValueError("File .key not found")
+
+        crt_file = crt_files[0]
+        key_file = key_files[0]
+
+        with open(crt_file, "rb") as crt:
+            cert_bytes = crt.read()
+
+        with open(key_file, "rb") as key:
+            key_data = key.read()
+            try:
+                pass_bytes = self.cert_password.encode('utf-8') if self.cert_password else None
+                private_key = serialization.load_pem_private_key(key_data, password=pass_bytes)
+            except (TypeError, ValueError):
+                private_key = serialization.load_pem_private_key(key_data, password=None)
+
+        if isinstance(private_key, EllipticCurvePrivateKey):
+            sig_alg = "ecdsa-sha256"
+        else:
+            sig_alg = "rsa-sha256"
+
+        signer = XMLSigner(
+            method=methods.enveloped,
+            signature_algorithm=sig_alg,
+            digest_algorithm="sha256",
+            c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
+        )
+
+        signed_root = signer.sign(
+            root,
+            key=private_key,
+            cert=cert_bytes
+        )
+
+        return etree.tostring(signed_root, xml_declaration=True, encoding="UTF-8")
+
+
+    def authentication_with_certificate(self):
+        url = f"{PROD_URL}/auth/xades-signature"
+
+        signed_xml_bytes = self.create_signed_auth_token_request()
+
+        headers = {
+        "Content-Type": "application/xml",
+        "X-Error-Format": "problem-details"
+        }
+
+        response = requests.post(url, data=signed_xml_bytes, headers=headers)
+
+        print(f"Response code: {response.status_code}")
+        
+        # Reading content of the response if status code is 202 (positive)
+        if response.status_code == 202:
+            response_data = response.json()
+            print(f"Token valid until: {response_data['authenticationToken']['validUntil']}")
+            self._session_token = response_data['authenticationToken']['token']
+            self._reference_number = response_data['referenceNumber']
+            return True
+        else:
+            try:
+                print("KSeF Error Details:", response.json())
+            except Exception:
+                print("KSeF Error Text:", response.text)
+            return False
+    
         
     # Step name in instrucion: "Pobranie statusu uwierzytelniania"
     # Checks current certifying status
@@ -398,9 +505,15 @@ class KsefApiClient:
         print("\n2. Downloading certificates")
         self.download_certificates()
 
-        print(f"\n3. Certifying using token (NIP = {self._nip} oraz TOKEN = {self._token})")
-        self.creating_encryptedToken()
-        status = self.certifying_with_token()
+        print(f"\n3. Authentication process")
+
+        if self._has_certificate:
+            print("Authentication with certificate")
+            status = self.authentication_with_certificate()
+        else:
+            print("Authentication with token")
+            self.creating_encryptedToken()
+            status = self.authentication_with_token()
         # End the process if the status above is False
         if not status:
             return False 
@@ -439,6 +552,38 @@ class KsefApiClient:
 
 
 # For the testing purpose
+# if __name__ == '__main__':
+#     start_time = time.time()
+
+#     print("Program started.\n")
+
+#     now = datetime.now()
+#     print(f"Today is {now}")
+
+#     date_from = (now - timedelta(days=DAYS_BACK)).replace(hour=0, minute=0, second=0, microsecond=0)
+#     print(f"Downloading invoices not older than {date_from}")
+
+#     with open(constants.DATA_FILE_PATH, 'r') as file:
+#         supervision_scopes = json.load(file)
+
+#     failure_list = []
+#     entities_processed = 0
+
+#     for scope in supervision_scopes:
+
+#         for entity in scope['entity']:
+#             name = entity['name']
+#             nip = entity['nip']
+#             token = entity['token']
+
+#             ksef_client = KsefApiClient(name, nip, token, date_from)
+
+#             ksef_client.download_invoices()
+
+#     end_time = time.time()
+
+#     print(f"\nTotal execution time: {end_time - start_time} seconds")
+
 if __name__ == '__main__':
     start_time = time.time()
 
@@ -462,8 +607,9 @@ if __name__ == '__main__':
             name = entity['name']
             nip = entity['nip']
             token = entity['token']
+            has_certificate = entity['certificate']
 
-            ksef_client = KsefApiClient(name, nip, token, date_from)
+            ksef_client = KsefApiClient(name, nip, token, has_certificate, date_from)
 
             ksef_client.download_invoices()
 
