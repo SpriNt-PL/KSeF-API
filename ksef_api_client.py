@@ -16,6 +16,9 @@ from cryptography.hazmat.primitives.asymmetric.ec import EllipticCurvePrivateKey
 from lxml import etree
 from signxml import XMLSigner, methods
 from cryptography.hazmat.primitives import serialization
+from endesive import xades
+from cryptography.hazmat.primitives.asymmetric import padding, ec
+from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 
 
 import constants
@@ -162,25 +165,16 @@ class KsefApiClient:
             return False
 
     def create_signed_auth_token_request(self):
+        # 1. SPŁASZCZONY XML Z ZABEZPIECZENIEM .strip()
         xml_template = (
-            '<?xml version="1.0" encoding="utf-8"?>'
-            '<AuthTokenRequest xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-            'xmlns:xsd="http://www.w3.org/2001/XMLSchema" '
-            'xmlns="http://ksef.mf.gov.pl/auth/token/2.0">'
-            f'<Challenge>{self._challenge}</Challenge>'
-            '<ContextIdentifier>'
-            f'<Nip>{self._nip}</Nip>'
-            '</ContextIdentifier>'
-            '<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>'
-            '</AuthTokenRequest>'
+            f'<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">'
+            f'<Challenge>{self._challenge.strip()}</Challenge>'
+            f'<ContextIdentifier><Nip>{str(self._nip).strip()}</Nip></ContextIdentifier>'
+            f'<SubjectIdentifierType>certificateSubject</SubjectIdentifierType>'
+            f'</AuthTokenRequest>'
         )
 
-        parser = etree.XMLParser(remove_blank_text=True)
-        root = etree.fromstring(xml_template.encode('utf-8'), parser=parser)
-
         certificate_dir = Path(os.path.join(constants.CERTIFICATES_DIRECTORY, self._name)).resolve()
-
-        print(certificate_dir)
         
         crt_files = list(certificate_dir.glob("*.crt"))
         key_files = list(certificate_dir.glob("*.key"))
@@ -190,13 +184,8 @@ class KsefApiClient:
         if not key_files:
             raise ValueError("File .key not found")
 
-        crt_file = crt_files[0]
-        key_file = key_files[0]
-
-        with open(crt_file, "rb") as crt:
-            cert_bytes = crt.read()
-
-        with open(key_file, "rb") as key:
+        # 2. ŁADOWANIE KLUCZA PRYWATNEGO (Przeniesione wyżej, żeby użyć go do weryfikacji)
+        with open(key_files[0], "rb") as key:
             key_data = key.read()
             try:
                 pass_bytes = self.cert_password.encode('utf-8') if self.cert_password else None
@@ -204,25 +193,69 @@ class KsefApiClient:
             except (TypeError, ValueError):
                 private_key = serialization.load_pem_private_key(key_data, password=None)
 
+        # 3. BEZPIECZNE ŁADOWANIE CERTYFIKATU Z ŁAŃCUCHA
+        with open(crt_files[0], "rb") as crt:
+            raw_cert_bytes = crt.read()
+            # Ładujemy wszystkie certyfikaty z pliku PEM na wypadek, gdyby to był cały łańcuch
+            all_certs = x509.load_pem_x509_certificates(raw_cert_bytes)
+            
+            # Pobieramy reprezentację bajtową naszego klucza publicznego
+            priv_pub_bytes = private_key.public_key().public_bytes(
+                serialization.Encoding.DER,
+                serialization.PublicFormat.SubjectPublicKeyInfo
+            )
+            
+            # Szukamy certyfikatu, który idealnie pasuje do naszego klucza prywatnego
+            cert_obj = None
+            for cert in all_certs:
+                cert_pub_bytes = cert.public_key().public_bytes(
+                    serialization.Encoding.DER,
+                    serialization.PublicFormat.SubjectPublicKeyInfo
+                )
+                if cert_pub_bytes == priv_pub_bytes:
+                    cert_obj = cert
+                    break
+            
+            if not cert_obj:
+                raise ValueError("Klucz prywatny (.key) nie pasuje do żadnego certyfikatu w pliku .crt! To powoduje błąd 9105.")
+
+            cert_der = cert_obj.public_bytes(serialization.Encoding.DER)
+
+        def signproc(data, algo):
+            if isinstance(private_key, EllipticCurvePrivateKey):
+                der_signature = private_key.sign(data, ec.ECDSA(hashes.SHA256()))
+                r, s = decode_dss_signature(der_signature)
+                key_size = (private_key.curve.key_size + 7) // 8
+                return r.to_bytes(key_size, 'big') + s.to_bytes(key_size, 'big')
+            else:
+                return private_key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+
         if isinstance(private_key, EllipticCurvePrivateKey):
-            sig_alg = "ecdsa-sha256"
+            sig_alg = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"
         else:
-            sig_alg = "rsa-sha256"
+            sig_alg = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
 
-        signer = XMLSigner(
-            method=methods.enveloped,
-            signature_algorithm=sig_alg,
-            digest_algorithm="sha256",
-            c14n_algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"
+        signed_xml_tree = xades.BES().enveloped(
+            xml_template.encode('utf-8'),
+            cert_obj,
+            cert_der,
+            signproc,
+            None,
+            None,
+            signaturemethod=sig_alg
         )
 
-        signed_root = signer.sign(
-            root,
-            key=private_key,
-            cert=cert_bytes
+        raw_xml_bytes = etree.tostring(
+            signed_xml_tree,
+            encoding="UTF-8",
+            xml_declaration=False
         )
 
-        return etree.tostring(signed_root, xml_declaration=True, encoding="UTF-8")
+        signed_xml_bytes = b'<?xml version="1.0" encoding="UTF-8"?>\n' + raw_xml_bytes
+
+        # print(signed_xml_bytes.decode("UTF-8"))
+
+        return signed_xml_bytes
 
 
     def authentication_with_certificate(self):
