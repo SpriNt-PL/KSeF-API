@@ -165,7 +165,7 @@ class KsefApiClient:
             return False
 
     def create_signed_auth_token_request(self):
-        # 1. SPŁASZCZONY XML Z ZABEZPIECZENIEM .strip()
+        # Prepare raw xml template including challenge and NIP
         xml_template = (
             f'<AuthTokenRequest xmlns="http://ksef.mf.gov.pl/auth/token/2.0">'
             f'<Challenge>{self._challenge.strip()}</Challenge>'
@@ -174,8 +174,8 @@ class KsefApiClient:
             f'</AuthTokenRequest>'
         )
 
+        # Retrieving the files with key and certificate
         certificate_dir = Path(os.path.join(constants.CERTIFICATES_DIRECTORY, self._name)).resolve()
-        
         crt_files = list(certificate_dir.glob("*.crt"))
         key_files = list(certificate_dir.glob("*.key"))
 
@@ -184,7 +184,7 @@ class KsefApiClient:
         if not key_files:
             raise ValueError("File .key not found")
 
-        # 2. ŁADOWANIE KLUCZA PRYWATNEGO (Przeniesione wyżej, żeby użyć go do weryfikacji)
+        # Loading and decrypting the private key
         with open(key_files[0], "rb") as key:
             key_data = key.read()
             try:
@@ -193,19 +193,16 @@ class KsefApiClient:
             except (TypeError, ValueError):
                 private_key = serialization.load_pem_private_key(key_data, password=None)
 
-        # 3. BEZPIECZNE ŁADOWANIE CERTYFIKATU Z ŁAŃCUCHA
+        # Fitting the certificate to the private key
         with open(crt_files[0], "rb") as crt:
             raw_cert_bytes = crt.read()
-            # Ładujemy wszystkie certyfikaty z pliku PEM na wypadek, gdyby to był cały łańcuch
             all_certs = x509.load_pem_x509_certificates(raw_cert_bytes)
             
-            # Pobieramy reprezentację bajtową naszego klucza publicznego
             priv_pub_bytes = private_key.public_key().public_bytes(
                 serialization.Encoding.DER,
                 serialization.PublicFormat.SubjectPublicKeyInfo
             )
             
-            # Szukamy certyfikatu, który idealnie pasuje do naszego klucza prywatnego
             cert_obj = None
             for cert in all_certs:
                 cert_pub_bytes = cert.public_key().public_bytes(
@@ -217,24 +214,26 @@ class KsefApiClient:
                     break
             
             if not cert_obj:
-                raise ValueError("Klucz prywatny (.key) nie pasuje do żadnego certyfikatu w pliku .crt! To powoduje błąd 9105.")
+                raise ValueError("Private key does not correspond to the certificate.")
 
             cert_der = cert_obj.public_bytes(serialization.Encoding.DER)
 
+        # Signing function which performs a RSA sign using the SHA-256
         def signproc(data, algo):
             if isinstance(private_key, EllipticCurvePrivateKey):
                 der_signature = private_key.sign(data, ec.ECDSA(hashes.SHA256()))
                 r, s = decode_dss_signature(der_signature)
                 key_size = (private_key.curve.key_size + 7) // 8
                 return r.to_bytes(key_size, 'big') + s.to_bytes(key_size, 'big')
-            else:
-                return private_key.sign(data, padding.PKCS1v15(), hashes.SHA256())
+            return private_key.sign(data, padding.PKCS1v15(), hashes.SHA256())
 
+        # Choosing the right W3C algorithm
         if isinstance(private_key, EllipticCurvePrivateKey):
             sig_alg = "http://www.w3.org/2001/04/xmldsig-more#ecdsa-sha256"
         else:
             sig_alg = "http://www.w3.org/2001/04/xmldsig-more#rsa-sha256"
 
+        # Generating the structure 
         signed_xml_tree = xades.BES().enveloped(
             xml_template.encode('utf-8'),
             cert_obj,
@@ -245,17 +244,9 @@ class KsefApiClient:
             signaturemethod=sig_alg
         )
 
-        raw_xml_bytes = etree.tostring(
-            signed_xml_tree,
-            encoding="UTF-8",
-            xml_declaration=False
-        )
-
-        signed_xml_bytes = b'<?xml version="1.0" encoding="UTF-8"?>\n' + raw_xml_bytes
-
-        # print(signed_xml_bytes.decode("UTF-8"))
-
-        return signed_xml_bytes
+        # Serialization to the raw bytes
+        raw_xml_bytes = etree.tostring(signed_xml_tree, encoding="UTF-8", xml_declaration=False)
+        return b'<?xml version="1.0" encoding="UTF-8"?>\n' + raw_xml_bytes
 
 
     def authentication_with_certificate(self):
