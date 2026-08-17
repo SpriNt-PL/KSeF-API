@@ -1,45 +1,124 @@
-Description
+# KSeF API Invoice Processor & Certificate Authorization
 
-Pipeline designed for the National e-Invoice System (KSeF). This tool automates the retrieval of invoice packages using the API, extracts XML data, and transforms it into human-readable PDF documents.
+[![KSeF API](https://img.shields.io/badge/KSeF--API-v2.0-green.svg)](https://ksef.podatki.gov.pl/)
 
-- XML to PDF transformation: Utilizes XSLT styling and the Playwright (Chromium) engine to render readable PDF documents automaticaly
+An automated Python pipeline designed for Poland's **National e-Invoice System (KSeF - Krajowy System e-Faktur)**. This tool automates authorization using client certificates, batch invoice package downloads, XML extraction, deduplication, and high-fidelity rendering into human-readable **PDF documents** via XSLT transformations and Playwright (headless Chromium).
 
-- Duplicate Prevention: Intelligent tracking system ensures that each invoice is processed only once preventing the situation where particular invoice is later processed twice.
+## Key Features
 
-- File management: Across whole execution all files downloaded as well as created during the process, are distributed to proper destination directories ensuring efficieny of futher manual invoice processing.
+* **Certificate Authorization & API Integration**: Securely authenticates with the official KSeF API environment using X.509 client certificates and API tokens.
+* **Automated Batch Download**: Retrieves and unpacks bulk e-invoice archives (`.zip` / `.xml`) for multiple tax entities (NIP).
+* **XML to PDF Rendering**: Uses XSLT stylesheets (`styl.xsl`, `schemat.xsd`, `WspolneSzablonyWizualizacji`) and Playwright Chromium to render pixel-perfect PDF versions of official Polish structured invoices.
+* **Intelligent Deduplication**: Tracks previously processed invoice identifiers to ensure zero duplicate PDF generation or downstream double-processing.
+* **Structured Directory Management**: Automatically organizes downloaded packages, extracted XMLs, generated PDFs, and log archives into clean entity-specific directory trees.
+* **Multi-Entity & Multi-Supervisor Support**: Handles multiple organizations/NIPs under different management profiles seamlessly via unified JSON configuration.
 
-Configuration
+## Getting Started
 
-1. Prapare "Data" directory
+### Option A: Pre-built Executable (`.exe`)
+1. **Download the Release**:
+   Go to the [Releases](../../releases) page and download the latest `Invoice_Downloader.zip` archive.
 
-2. Inside this directory create "data.json" file.
+2. **Extract Archives**:
+   Unpack the `.zip` file. You will find the pre-configured folder structure ready to use:
+   ```text
+   ├── Invoice Downloader.exe
+   ├── config.ini
+   └── Data/
+       ├── data.json
+       ├── Certificate/   <-- Place your .crt and .key files here
+       └── Scheme/        <-- Contains pre-downloaded XSD / XSLT files
+    ```
 
-3. Fill "data.json" file according to this pattern:
+3. **Fill Configuration**:
+    *   Open `config.ini` and set your certificate password.
+    *   Open `Data/data.json` and fill in your NIP and API Token details.
+    *   Place your `.crt` and `.key` certificate files into `Data/Certificate/`.
 
-[
-    {
-        "supervisor": "Name Surname",
-        "entity": [
-            {
-                "name": "To be filled",
-                "nip": 1234567890,
-                "token": "To be filled"
-            }
-        ]
-    }
-]
+4. **Run**  
+    Double-click `Invoice Downloader.exe` or execute via terminal:
+    ```bash
+    Invoice Downloader.exe
+    ```
 
-4. Inside "Data" directory create "Scheme" directory and paste there XSD and XSLT files
+### Option B: Run from Source (Python)
 
-XSD file: https://ksef.podatki.gov.pl/media/oicluwg2/schemat_fa_vat_rr-1-_v1-0.xsd
+### Prerequisites 
+* **Python 3.8+**
+* Active **KSeF API Certificate / Token** (Test or Production environment)
 
-XSLT file: http://crd.gov.pl/wzor/2026/02/17/14164/styl.xsl
+### Libraries
+* Create virtual environment (Optional):
+    ```bash
+    python -m venv .venv
+    ```
+* Install the following libraries using this:
+    ```bash
+    pip install -r requirements.txt
+    ```
 
-5. You may need to download WspolneSzablonyWizualizacji_v12-0E.xsl file mentioned in styl.xsl file. Originaly in styl.xsl there is a link to this file however it may be required to download this file manually and paste it to the same "Scheme" directory. Then you must change the original path (url) into local (preferably relative) path.
+### Configuration Setup
 
-6. Set proper base path in constants.py
+1. **Create Directory Structure**  
+   Create a directory named `Data` in your root folder and subfolders named `Certificate`, `Scheme` inside it:
+   ```text
+   ├── config.ini
+   └── Data/
+       ├── data.json
+       ├── Certificate/
+       └── Scheme/
+   ```
 
-7. You are ready to go!
+2. **Configure data.json**  
+    Inside the `Data` directory, create a `data.json` file and structure it as follows:
+    ```json
+    [
+        {
+            "supervisor": "Name Surname",
+            "entity": [
+                {
+                    "name": "To be filled",
+                    "nip": 1234567890,
+                    "token": "To be filled"
+                }
+            ]
+        }
+    ]
+    ```
 
-To be fixed:
-Possibility that invoices from a single entity will be splitted into several archives.
+3. **Add Certificate**  
+    Inside `Data/Certificate/` directory paste two certificate files with following extensions:
+    *   `.crt`
+    *   `.key`
+
+
+4. **Download Schema & Stylesheets**  
+    Save the following files inside the `Data/Scheme/` directory:
+
+    **XSD file:** https://ksef.podatki.gov.pl/media/oicluwg2/schemat_fa_vat_rr-1-_v1-0.xsd
+
+    **XSLT file:** http://crd.gov.pl/wzor/2026/02/17/14164/styl.xsl
+
+5. **Resolve Local XSLT Dependencies**  
+    Download the dependent asset `WspolneSzablonyWizualizacji_v12-0E.xsl` (referenced inside `styl.xsl`) and save it to the `Data/Scheme/` directory as well. Then, open `styl.xsl` and update the external URL reference to point to your local relative file path:
+    
+    ```xml
+    <!-- Update from remote URL to local relative path -->
+    <xsl:include href="WspolneSzablonyWizualizacji_v12-0E.xsl"/>
+    ```
+
+6. **Set Constants**  
+    Open constants.py and set the proper base path variable for your execution environment.
+
+7. **Create Config File**  
+    In the root folder create `config.ini` with the following structure and fill it with proper data:
+    ```text
+    [certificate]
+    password = to be filled
+    ```
+
+8. **Run**  
+    You are all set to run the application!
+    ```bash
+    py main.py
+    ```
