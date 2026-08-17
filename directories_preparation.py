@@ -38,13 +38,13 @@ def create_essential_directories_for_each_entity(supervision_scopes):
 
             name = entity['name']
 
-            archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
+            archive_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
 
-            invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+            invoice_xml_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
 
-            invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+            invoice_pdf_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
 
-            old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+            old_archive_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
 
             if os.path.isdir(archive_directory_path):
                 print(f"Archive directory in {name} exists.")
@@ -98,10 +98,10 @@ def prepare_directories():
     print("\nPreparing working directory for file processing")
 
     print("\n1. Create main invoice directory")
-    create_invoice_directory(constants.INVOICE_DIRECTORY_PATH)
+    create_invoice_directory(constants.SERVICE_INVOICE_DIRECTORY_PATH)
 
     print("\n2. Create entity directories in Invoice directory")
-    create_entities_directories(supervision_scopes, constants.INVOICE_DIRECTORY_PATH)
+    create_entities_directories(supervision_scopes, constants.SERVICE_INVOICE_DIRECTORY_PATH)
 
     print("\n3. Create essential directories directories for each entity")
     create_essential_directories_for_each_entity(supervision_scopes)
@@ -109,10 +109,10 @@ def prepare_directories():
     print("\nPreparing main output directory from where invoices are being processed manually")
 
     print("\n1. Create main invoice directory")
-    create_invoice_directory(constants.OUTPUT_DIRECTORY_PATH)
+    create_invoice_directory(constants.MAIN_INVOICE_DIRECTORY_PATH)
 
     print("\n2. Create directory for each supervisor")
-    create_directory_for_each_supervisor(constants.OUTPUT_DIRECTORY_PATH, supervision_scopes)
+    create_directory_for_each_supervisor(constants.MAIN_INVOICE_DIRECTORY_PATH, supervision_scopes)
 
 if __name__ == "__main__":
 

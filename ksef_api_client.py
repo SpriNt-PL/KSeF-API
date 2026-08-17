@@ -481,7 +481,7 @@ class KsefApiClient:
                 part_name = part_name[:-8]
 
                 # Saving the decrypted archive in the proper Archive directory
-                output_path = f"{constants.INVOICE_DIRECTORY_PATH}/{self._name}/{constants.ARCHIVE_DIRECTORY}/{part_name}.zip"
+                output_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{self._name}/{constants.ARCHIVE_DIRECTORY}/{part_name}.zip"
 
                 with open(output_path, "wb") as f:
                     f.write(decrypted_zip)

@@ -258,11 +258,11 @@ def prepare_invoices():
 
             name = entity['name']
 
-            archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
-            old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
-            invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
-            invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
-            supervisor_directory_path = f"{constants.OUTPUT_DIRECTORY_PATH}/{supervisor_name}"
+            archive_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
+            old_archive_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+            invoice_xml_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+            invoice_pdf_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+            supervisor_directory_path = f"{constants.MAIN_INVOICE_DIRECTORY_PATH}/{supervisor_name}"
 
             print(f"Processing invoices belonging to: {name}")
 
