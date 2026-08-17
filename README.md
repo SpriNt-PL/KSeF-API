@@ -113,6 +113,13 @@ An automated Python pipeline designed for Poland's **National e-Invoice System (
 7. **Create Config File**  
     In the root folder create `config.ini` with the following structure and fill it with proper data:
     ```text
+    [paths]
+    ; Path direct paths to those folders / files
+    data_directory = ./Data
+    service_invoice_directory = ./Invoices
+    main_invoice_directory = ./Faktury
+    report_file = ./raport.txt
+    
     [certificate]
     password = to be filled
     ```
