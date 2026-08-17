@@ -227,7 +227,7 @@ class InvoiceProcessor:
             # Specifying the browser's details
             browser = await p.chromium.launch(
                 headless=True, 
-                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--single-process"]
+                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
             )
 
             try:
