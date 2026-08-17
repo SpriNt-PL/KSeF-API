@@ -36,12 +36,11 @@ ACCESS_TOKENS_DELAY_TIME = 5
 MAX_ATTEMPTS = 5
 
 class KsefApiClient:
-    def __init__(self, name, nip, token, has_certificate, date_from):
+    def __init__(self, name, nip, token, date_from):
         # Entity session details
         self._name = name
         self._nip = nip
         self._token = token
-        self._has_certificate = has_certificate
         self._date_from = date_from
 
         # Introduced on "1. Certifying initialization" step
@@ -175,7 +174,7 @@ class KsefApiClient:
         )
 
         # Retrieving the files with key and certificate
-        certificate_dir = Path(os.path.join(constants.CERTIFICATES_DIRECTORY, self._name)).resolve()
+        certificate_dir = Path(constants.CERTIFICATE_DIRECTORY).resolve()
         crt_files = list(certificate_dir.glob("*.crt"))
         key_files = list(certificate_dir.glob("*.key"))
 
@@ -248,12 +247,15 @@ class KsefApiClient:
         raw_xml_bytes = etree.tostring(signed_xml_tree, encoding="UTF-8", xml_declaration=False)
         return b'<?xml version="1.0" encoding="UTF-8"?>\n' + raw_xml_bytes
 
-
+    # Step name in instrucion: "Uwierzytelnienie z wykorzystaniem podpisu XAdES (with KSeF certificate)"
+    # Starts authentication using KSeF certificate
     def authentication_with_certificate(self):
         url = f"{PROD_URL}/auth/xades-signature"
 
+        # Preparing the xml which will be send as a content of a request
         signed_xml_bytes = self.create_signed_auth_token_request()
 
+        # Preparing the request's payload
         headers = {
         "Content-Type": "application/xml",
         "X-Error-Format": "problem-details"
@@ -530,14 +532,9 @@ class KsefApiClient:
         self.download_certificates()
 
         print(f"\n3. Authentication process")
-
-        if self._has_certificate:
-            print("Authentication with certificate")
-            status = self.authentication_with_certificate()
-        else:
-            print("Authentication with token")
-            self.creating_encryptedToken()
-            status = self.authentication_with_token()
+        print("Authentication with certificate")
+        status = self.authentication_with_certificate()
+        
         # End the process if the status above is False
         if not status:
             return False 
@@ -631,9 +628,8 @@ if __name__ == '__main__':
             name = entity['name']
             nip = entity['nip']
             token = entity['token']
-            has_certificate = entity['certificate']
 
-            ksef_client = KsefApiClient(name, nip, token, has_certificate, date_from)
+            ksef_client = KsefApiClient(name, nip, token, date_from)
 
             ksef_client.download_invoices()
 

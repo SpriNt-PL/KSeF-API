@@ -60,9 +60,8 @@ if __name__ == "__main__":
                 name = entity['name']
                 nip = entity['nip']
                 token = entity['token']
-                has_certificate = entity['certificate']
 
-                ksef_client = KsefApiClient(name, nip, token, has_certificate, date_from)
+                ksef_client = KsefApiClient(name, nip, token, date_from)
 
                 # If KSeF Client did not succeed then add name of currently process entity to the failure list
                 success = ksef_client.download_invoices()

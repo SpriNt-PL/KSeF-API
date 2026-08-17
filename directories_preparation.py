@@ -96,7 +96,7 @@ def prepare_directories():
             supervision_scopes = json.load(file)
 
     print("\nPreparing directory for certificates")
-    create_entities_directories(supervision_scopes, constants.CERTIFICATES_DIRECTORY)
+    create_entities_directories(supervision_scopes, constants.CERTIFICATE_DIRECTORY)
 
     print("\nPreparing working directory for file processing")
 

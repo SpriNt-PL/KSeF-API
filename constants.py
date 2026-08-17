@@ -4,7 +4,7 @@ BASE_PATH = '.'
 
 DATA_FILE_PATH = f'{BASE_PATH}/Data/data.json'
 XSL_STYLE_FILE = f'{BASE_PATH}/Data/Scheme/styl.xsl'
-CERTIFICATES_DIRECTORY = f'{BASE_PATH}/Data/Certificates'
+CERTIFICATE_DIRECTORY = f'{BASE_PATH}/Data/Certificate'
 
 INVOICE_DIRECTORY_PATH = f'{BASE_PATH}/Invoices'
 #INVOICE_DIRECTORY_PATH = './Invoices'

@@ -5,7 +5,7 @@ __pycache__/
 *.xml
 Data/*.xlsx
 Data/*.json
-Data/Certificates
+Data/Certificate
 !Data/Scheme/wyroznik.xml
 *.zip
 *.pdf
