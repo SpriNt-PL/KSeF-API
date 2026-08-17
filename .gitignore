@@ -5,6 +5,7 @@ __pycache__/
 *.xml
 Data/*.xlsx
 Data/*.json
+Data/Certificate
 !Data/Scheme/wyroznik.xml
 *.zip
 *.pdf
@@ -13,6 +14,7 @@ Invoices_1/*
 Faktury/*
 raport.txt
 .idea
+*.ini
 
 # --- PyInstaller ---
 build/

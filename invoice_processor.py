@@ -27,11 +27,11 @@ class InvoiceProcessor:
 
 
         # Paths to directories
-        self._archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
-        self._old_archive_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
-        self._invoice_xml_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
-        self._invoice_pdf_directory_path = f"{constants.INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
-        self._supervisor_directory_path = f"{constants.OUTPUT_DIRECTORY_PATH}/{supervisor_name}"
+        self._archive_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.ARCHIVE_DIRECTORY}"
+        self._old_archive_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.OLD_ARCHIVE_DIRECTORY}"
+        self._invoice_xml_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_XML_DIRECTORY}"
+        self._invoice_pdf_directory_path = f"{constants.SERVICE_INVOICE_DIRECTORY_PATH}/{name}/{constants.INVOICE_PDF_DIRECTORY}"
+        self._supervisor_directory_path = f"{constants.MAIN_INVOICE_DIRECTORY_PATH}/{supervisor_name}"
 
     # Returns a list of only new files which are not present in the destination directory
     def _choose_only_new_files(self, zip_file_list, destination_file_list):
@@ -227,7 +227,7 @@ class InvoiceProcessor:
             # Specifying the browser's details
             browser = await p.chromium.launch(
                 headless=True, 
-                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--single-process"]
+                args=["--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage"]
             )
 
             try:
