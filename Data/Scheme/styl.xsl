@@ -991,7 +991,7 @@
 					</td>
 					<td class="niewypelniane">Ilość</td>
 					<td class="niewypelniane">Jednostka miary</td>
-					<!-- <td class="niewypelniane">Opusty i obniżki cen</td> -->
+					<td class="niewypelniane">Rabat / Opust</td>
 					<td class="niewypelniane">Stawka podatku</td>
 					<td class="niewypelniane">
                         Wartość sprzedaży
@@ -1025,11 +1025,14 @@
 							<xsl:value-of select="tns:Indeks"/>
 						</td> -->
 						<td class="prawa" width="auto">
-							<xsl:if test="tns:P_9A">
-								<xsl:value-of select="tns:P_9A"/></xsl:if>
-							<xsl:if test="tns:P_9B">
-								<!-- <br/> -->
-								<xsl:value-of select="tns:P_9B"/></xsl:if>
+							<xsl:choose>
+								<xsl:when test="tns:P_9A">
+									<xsl:value-of select="tns:P_9A"/>
+								</xsl:when>
+								<xsl:when test="tns:P_9B">
+									<xsl:value-of select="tns:P_9B"/>
+								</xsl:when>
+							</xsl:choose>
 						</td>
 						<td class="prawa" width="auto">
 							<xsl:value-of select="tns:P_8B"/>
@@ -1037,9 +1040,9 @@
 						<td class="lewa" width="auto">
 							<xsl:value-of select="tns:P_8A"/>
 						</td>
-						<!-- <td class="prawa" width="auto">
+						<td class="prawa" width="auto">
 							<xsl:value-of select="tns:P_10"/>
-						</td> -->
+						</td>
 						<td class="srodek" width="auto">
 							<xsl:choose>
 								<xsl:when test="tns:P_12 = '23'">
@@ -1087,11 +1090,14 @@
 							</xsl:choose>
 						</td>
 						<td class="prawa" width="auto">
-							<xsl:if test="tns:P_11">
-								<xsl:value-of select="tns:P_11"/></xsl:if>
-							<xsl:if test="tns:P_11A">
-								<!-- <br/> -->
-								<xsl:value-of select="tns:P_11A"/></xsl:if>
+							<xsl:choose>
+								<xsl:when test="tns:P_11">
+									<xsl:value-of select="tns:P_11"/>
+								</xsl:when>
+								<xsl:when test="tns:P_11A">
+									<xsl:value-of select="tns:P_11A"/>
+								</xsl:when>
+							</xsl:choose>
 						</td>
 						<td class="prawa" width="auto">
 							<xsl:value-of select="tns:P_11Vat"/>
