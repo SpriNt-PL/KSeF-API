@@ -1005,11 +1005,11 @@
                 <xsl:if test="$hasNetto">
                     <td class="niewypelniane">Wartość netto</td>
                 </xsl:if>
-                <xsl:if test="$hasVat">
-                    <td class="niewypelniane">Kwota VAT</td>
-                </xsl:if>
                 <xsl:if test="$hasBrutto">
                     <td class="niewypelniane">Wartość brutto</td>
+                </xsl:if>
+				<xsl:if test="$hasVat">
+                    <td class="niewypelniane">Kwota VAT</td>
                 </xsl:if>
             </tr>
 
@@ -1043,7 +1043,7 @@
                         </td>
                     </xsl:if>
                     
-                    <td class="srodek" width="auto">
+                    <td class="lewa" width="auto">
                         <xsl:choose>
                             <xsl:when test="tns:P_12 = '23'"><xsl:text>23%</xsl:text></xsl:when>
                             <xsl:when test="tns:P_12 = '22'"><xsl:text>22%</xsl:text></xsl:when>
@@ -1068,14 +1068,14 @@
                             <xsl:value-of select="tns:P_11"/>
                         </td>
                     </xsl:if>
-                    <xsl:if test="$hasVat">
-                        <td class="prawa" width="auto">
-                            <xsl:value-of select="tns:P_11Vat"/>
-                        </td>
-                    </xsl:if>
                     <xsl:if test="$hasBrutto">
                         <td class="prawa" width="auto">
                             <xsl:value-of select="tns:P_11A"/>
+                        </td>
+                    </xsl:if>
+					<xsl:if test="$hasVat">
+                        <td class="prawa" width="auto">
+                            <xsl:value-of select="tns:P_11Vat"/>
                         </td>
                     </xsl:if>
                 </tr>
