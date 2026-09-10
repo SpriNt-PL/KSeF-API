@@ -1,4 +1,4 @@
-# KSeF API Invoice Processor & Certificate Authorization
+# KSeF API Invoice Processor
 
 [![KSeF API](https://img.shields.io/badge/KSeF--API-v2.0-green.svg)](https://ksef.podatki.gov.pl/)
 
