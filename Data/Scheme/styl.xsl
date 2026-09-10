@@ -974,203 +974,116 @@
 		</xsl:if>
 	</xsl:template>
 	<xsl:template name="FakturaWiersze">
-		<br/>
-		<xsl:if test="tns:Fa/tns:FaWiersz">
-			<table class="white-space">
-				<tr>
-					<td class="niewypelniane">Numer wiersza faktury</td>
-					<!-- <td class="niewypelniane">Uniwersalny unikalny numer wiersza faktury</td> -->
-					<td class="niewypelniane">Nazwa (rodzaj) towaru lub usługi</td>
-					<!-- <td class="niewypelniane">Indeks</td> -->
-					<td class="niewypelniane">
-						Cena jednostkowa
-						<xsl:choose>
-							<xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_9A"> (netto)</xsl:when>
-                            <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_9B"> (brutto)</xsl:when>
-						</xsl:choose>
-					</td>
-					<td class="niewypelniane">Ilość</td>
-					<td class="niewypelniane">Jednostka miary</td>
-					<!-- <td class="niewypelniane">Opusty i obniżki cen</td> -->
-					<td class="niewypelniane">Stawka podatku</td>
-					<td class="niewypelniane">
-                        Wartość sprzedaży
+    <br/>
+    <xsl:if test="tns:Fa/tns:FaWiersz">
+        <!-- Variables checking invoice content -->
+        <xsl:variable name="hasNetto" select="boolean(tns:Fa/tns:FaWiersz/tns:P_11)"/>
+        <xsl:variable name="hasBrutto" select="boolean(tns:Fa/tns:FaWiersz/tns:P_11A)"/>
+        <xsl:variable name="hasVat" select="boolean(tns:Fa/tns:FaWiersz/tns:P_11Vat)"/>
+        <xsl:variable name="hasRabat" select="boolean(tns:Fa/tns:FaWiersz/tns:P_10)"/>
+
+        <table class="white-space">
+            <tr>
+                <td class="niewypelniane">Lp.</td>
+                <td class="niewypelniane">Nazwa (rodzaj) towaru lub usługi</td>
+                <td class="niewypelniane">
+                    Cena jedn.
+                    <xsl:choose>
+                        <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_9A"> (netto)</xsl:when>
+                        <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_9B"> (brutto)</xsl:when>
+                    </xsl:choose>
+                </td>
+                <td class="niewypelniane">Ilość</td>
+                <td class="niewypelniane">J.m.</td>
+                
+                <xsl:if test="$hasRabat">
+                    <td class="niewypelniane">Rabat jedn.</td>
+                </xsl:if>
+                
+                <td class="niewypelniane">Stawka VAT</td>
+                
+                <xsl:if test="$hasNetto">
+                    <td class="niewypelniane">Wartość netto</td>
+                </xsl:if>
+                <xsl:if test="$hasBrutto">
+                    <td class="niewypelniane">Wartość brutto</td>
+                </xsl:if>
+				<xsl:if test="$hasVat">
+                    <td class="niewypelniane">Kwota VAT</td>
+                </xsl:if>
+            </tr>
+
+            <xsl:for-each select="tns:Fa/tns:FaWiersz">
+                <tr>
+                    <td class="srodek" width="auto">
+                        <xsl:value-of select="tns:NrWierszaFa"/>
+                    </td>
+                    <td class="lewa" width="auto">
+                        <xsl:value-of select="tns:P_7"/>
+                    </td>
+                    <td class="prawa" width="auto">
                         <xsl:choose>
-                            <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_11"> (netto)</xsl:when>
-                            <xsl:when test="tns:Fa/tns:FaWiersz[1]/tns:P_11A"> (brutto)</xsl:when>
+                            <xsl:when test="tns:P_9A"><xsl:value-of select="tns:P_9A"/></xsl:when>
+                            <xsl:when test="tns:P_9B"><xsl:value-of select="tns:P_9B"/></xsl:when>
                         </xsl:choose>
                     </td>
-					<td class="niewypelniane">Kwota VAT</td>
-					<!-- <td class="niewypelniane">Stawka podatku od wartości dodanej</td>
-					<td class="niewypelniane">Data dokonania lub zakończenia dostawy towarów lub wykonania usługi lub data otrzymania zapłaty</td>
-					<td class="niewypelniane">Klasyfikacja</td>
-					<td class="niewypelniane">Kwota podatku akcyzowego zawarta w cenie towaru</td>
-					<td class="niewypelniane">Oznaczenie dotyczące dostawy towarów i świadczenia usług lub procedury</td>
-					<td class="niewypelniane">Kurs waluty z Działu VI ustawy</td>
-					<td class="niewypelniane">Znacznik dla towaru lub usługi z załącznika nr 15 do ustawy</td>
-					<td class="niewypelniane">Znacznik stanu przed korektą</td> -->
-				</tr>
-				<xsl:for-each select="tns:Fa/tns:FaWiersz">
-					<tr>
-						<td class="srodek" width="auto">
-							<xsl:value-of select="tns:NrWierszaFa"/>
-						</td>
-						<!-- <td class="lewa" width="auto">
-							<xsl:value-of select="tns:UU_ID"/>
-						</td> -->
-						<td class="lewa" width="auto">
-							<xsl:value-of select="tns:P_7"/>
-						</td>
-						<!-- <td class="lewa" width="auto">
-							<xsl:value-of select="tns:Indeks"/>
-						</td> -->
-						<td class="prawa" width="auto">
-							<xsl:if test="tns:P_9A">
-								<xsl:value-of select="tns:P_9A"/></xsl:if>
-							<xsl:if test="tns:P_9B">
-								<!-- <br/> -->
-								<xsl:value-of select="tns:P_9B"/></xsl:if>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:value-of select="tns:P_8B"/>
-						</td>
-						<td class="lewa" width="auto">
-							<xsl:value-of select="tns:P_8A"/>
-						</td>
-						<!-- <td class="prawa" width="auto">
-							<xsl:value-of select="tns:P_10"/>
-						</td> -->
-						<td class="srodek" width="auto">
-							<xsl:choose>
-								<xsl:when test="tns:P_12 = '23'">
-									<xsl:text>23%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '22'">
-									<xsl:text>22%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '8'">
-									<xsl:text>8%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '7'">
-									<xsl:text>7%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '5'">
-									<xsl:text>5%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '4'">
-									<xsl:text>4%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '3'">
-									<xsl:text>3%</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '0 KR'">
-									<xsl:text>0% w przypadku sprzedaży towarów i świadczenia usług na terytorium kraju (z wyłączeniem WDT i eksportu)</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '0 WDT'">
-									<xsl:text>0% w przypadku wewnątrzwspólnotowej dostawy towarów (WDT)</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = '0 EX'">
-									<xsl:text>0% w przypadku eksportu towarów</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = 'zw'">
-									<xsl:text>zwolnione od podatku</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = 'oo'">
-									<xsl:text>odwrotne obciążenie</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = 'np I'">
-									<xsl:text>niepodlegające opodatkowaniu- dostawy towarów oraz świadczenia usług poza terytorium kraju, z wyłączeniem transakcji, o których mowa w art. 100 ust. 1 pkt 4 ustawy oraz OSS</xsl:text>
-								</xsl:when>
-								<xsl:when test="tns:P_12 = 'np II'">
-									<xsl:text>niepodlegajace opodatkowaniu na terytorium kraju, świadczenie usług  o których mowa w art. 100 ust. 1 pkt 4 ustawy</xsl:text>
-								</xsl:when>
-							</xsl:choose>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:if test="tns:P_11">
-								<xsl:value-of select="tns:P_11"/></xsl:if>
-							<xsl:if test="tns:P_11A">
-								<!-- <br/> -->
-								<xsl:value-of select="tns:P_11A"/></xsl:if>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:value-of select="tns:P_11Vat"/>
-						</td>
-						<!-- <td class="srodek" width="auto">
-							<xsl:if test="tns:P_12_XII">
-								<xsl:value-of select="tns:P_12_XII"/>
-								<xsl:text>%</xsl:text>
-							</xsl:if>
-						</td>
-						<td class="srodek" width="auto">
-							<xsl:value-of select="tns:P_6A"/>
-						</td>
-						<td class="lewa" width="auto">
-							<xsl:if test="tns:GTIN">
-									GTIN: 
-									<xsl:value-of select="tns:GTIN"/>;
-							</xsl:if>
-							<xsl:if test="tns:PKWiU">
-								<xsl:if test="tns:GTIN">
-									<br/>
-								</xsl:if>
-									PKWiU: 
-									<xsl:value-of select="tns:PKWiU"/>;
-							</xsl:if>
-							<xsl:if test="tns:CN">
-								<xsl:if test="tns:GTIN|tns:PKWiU">
-									<br/>
-								</xsl:if>
-									CN: 
-									<xsl:value-of select="tns:CN"/>;
-							</xsl:if>
-							<xsl:if test="tns:PKOB">
-								<xsl:if test="tns:GTIN|tns:PKWiU|tns:CN">
-									<br/>
-								</xsl:if>
-									PKOB: 
-									<xsl:value-of select="tns:PKOB"/>;
-							</xsl:if>
-						</td>
-						<td class="prawa" width="auto">
-							<xsl:value-of select="tns:KwotaAkcyzy"/>
-						</td>
-						<td class="srodek" width="auto">
-							<xsl:if test="tns:GTU">
-								<xsl:value-of select="tns:GTU"/>
-							</xsl:if>
-							<xsl:if test="tns:Procedura">
-								<xsl:if test="tns:GTU">
-									<br/>
-								</xsl:if>
-								<xsl:value-of select="tns:Procedura"/>
-							</xsl:if>
-						</td>
-						<td class="prawa">
-							<xsl:value-of select="tns:KursWaluty"/>
-						</td>
-						<td class="srodek">
-							<xsl:if test="tns:P_12_Zal_15 = '1'">
-								<input type="checkbox" checked="checked" disabled="disabled"/>
-								<b>
-									<xsl:text>1. Tak</xsl:text>
-								</b>
-							</xsl:if>
-						</td>
-						<td class="srodek">
-							<xsl:if test="tns:StanPrzed = '1'">
-								<input type="checkbox" checked="checked" disabled="disabled"/>
-								<b>
-									<xsl:text>1. Tak</xsl:text>
-								</b>
-							</xsl:if>
-						</td> -->
-					</tr>
-				</xsl:for-each>
-			</table>
-		</xsl:if>
-		<br/>
-	</xsl:template>
+                    <td class="prawa" width="auto">
+                        <xsl:value-of select="tns:P_8B"/>
+                    </td>
+                    <td class="lewa" width="auto">
+                        <xsl:value-of select="tns:P_8A"/>
+                    </td>
+                    
+                    <xsl:if test="$hasRabat">
+                        <td class="prawa" width="auto">
+                            <xsl:choose>
+                                <xsl:when test="tns:P_10"><xsl:value-of select="tns:P_10"/></xsl:when>
+                                <xsl:otherwise>-</xsl:otherwise>
+                            </xsl:choose>
+                        </td>
+                    </xsl:if>
+                    
+                    <td class="lewa" width="auto">
+                        <xsl:choose>
+                            <xsl:when test="tns:P_12 = '23'"><xsl:text>23%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '22'"><xsl:text>22%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '8'"><xsl:text>8%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '7'"><xsl:text>7%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '5'"><xsl:text>5%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '4'"><xsl:text>4%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '3'"><xsl:text>3%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '0 KR'"><xsl:text>0%</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '0 WDT'"><xsl:text>0% (WDT)</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = '0 EX'"><xsl:text>0% (eksport)</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = 'zw'"><xsl:text>zwolnione</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = 'oo'"><xsl:text>odwrotne obciążenie</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = 'np I'"><xsl:text>np I</xsl:text></xsl:when>
+                            <xsl:when test="tns:P_12 = 'np II'"><xsl:text>np II</xsl:text></xsl:when>
+                            <xsl:otherwise><xsl:value-of select="tns:P_12"/></xsl:otherwise>
+                        </xsl:choose>
+                    </td>
+
+                    <xsl:if test="$hasNetto">
+                        <td class="prawa" width="auto">
+                            <xsl:value-of select="tns:P_11"/>
+                        </td>
+                    </xsl:if>
+                    <xsl:if test="$hasBrutto">
+                        <td class="prawa" width="auto">
+                            <xsl:value-of select="tns:P_11A"/>
+                        </td>
+                    </xsl:if>
+					<xsl:if test="$hasVat">
+                        <td class="prawa" width="auto">
+                            <xsl:value-of select="tns:P_11Vat"/>
+                        </td>
+                    </xsl:if>
+                </tr>
+            </xsl:for-each>
+        </table>
+    </xsl:if>
+    <br/>
+</xsl:template>
 	<xsl:template name="PodliczenieVAT">
 		<xsl:if test="tns:Fa/tns:P_13_1|tns:Fa/tns:P_14_1|tns:Fa/tns:P_13_2|tns:Fa/tns:P_14_2|tns:Fa/tns:P_13_3|tns:Fa/tns:P_14_3|tns:Fa/tns:P_13_6_1|tns:Fa/tns:P_13_6_2|tns:Fa/tns:P_13_6_3|tns:Fa/tns:P_13_7|tns:Fa/tns:P_13_4|tns:Fa/tns:P_14_4|tns:Fa/tns:P_13_5">
 			<b>Podsumowanie wg stawek</b>
